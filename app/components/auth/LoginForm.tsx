@@ -79,6 +79,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
         </button>
       </form>
 
+      <div className="mt-6 p-4 bg-gray-50 rounded-md">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h3>
+        <div className="space-y-1 text-xs text-gray-600">
+          <p><strong>Student:</strong> john@example.com / password</p>
+          <p><strong>Recruiter:</strong> jane@example.com / password</p>
+          <p><strong>Admin:</strong> admin@example.com / password</p>
+        </div>
+      </div>
+
       {onSwitchToRegister && (
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{' '}
@@ -86,7 +95,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
             onClick={onSwitchToRegister}
             className="text-blue-600 hover:text-blue-500 font-medium"
           >
-            Sign up
+            Sign Up
           </button>
         </p>
       )}

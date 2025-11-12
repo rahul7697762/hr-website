@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
 import { useAuth } from '../contexts/AuthContext';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
 
   // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, loading, router]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Don't render if authenticated (will redirect)
   if (isAuthenticated) {
-    window.location.href = '/';
     return null;
   }
 
@@ -27,21 +44,17 @@ const AuthPage: React.FC = () => {
 
         {isLogin ? (
           <LoginForm
-            onSuccess={() => window.location.href = '/'}
+            onSuccess={() => router.push('/dashboard')}
             onSwitchToRegister={() => setIsLogin(false)}
           />
         ) : (
           <RegisterForm
-            onSuccess={() => window.location.href = '/'}
+            onSuccess={() => router.push('/dashboard')}
             onSwitchToLogin={() => setIsLogin(true)}
           />
         )}
 
-        <div className="text-center text-sm text-gray-500">
-          <p>Demo accounts:</p>
-          <p>Student: john@example.com / password</p>
-          <p>Recruiter: jane@example.com / password</p>
-        </div>
+
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ const Template5: React.FC<TemplateProps> = ({ data, color }) => {
   const { contact, objective, education, skills, languages, experience, references } = data;
 
   return (
-    <div className="w-[900px] mx-auto bg-white text-gray-900 font-sans shadow-md border border-gray-200 print:shadow-none print:border-0 flex">
+    <div className="w-[900px] mx-auto bg-white text-gray-900 font-sans flex">
       {/* ===== LEFT SIDEBAR ===== */}
       <aside
         className="w-[35%] text-white p-6 flex flex-col items-center"

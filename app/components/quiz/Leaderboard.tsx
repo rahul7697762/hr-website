@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-import { createClient } from "@supabase/dabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 // 🧩 Load environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -45,7 +45,7 @@ export const testConnection = async () => {
     console.log("✅ Supabase connected successfully!");
     return true;
   } catch (err) {
-    console.error("❌ Supabase connection failed:", err.message);
+    console.error("❌ Supabase connection failed:", err instanceof Error ? err.message : 'Unknown error');
     return false;
   }
 };

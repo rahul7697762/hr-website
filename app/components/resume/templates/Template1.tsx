@@ -14,8 +14,7 @@ const Template0: React.FC<Template0Props> = ({ data, color }) => {
 
   return (
     <div
-      className="w-[850px] mx-auto bg-white text-gray-900 font-sans shadow-md p-10 border border-gray-200"
-      style={{ borderTopColor: color.primary }}
+      className="w-[850px] mx-auto bg-white text-gray-900 font-sans p-10"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b pb-4 mb-6">

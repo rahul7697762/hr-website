@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import RoleSelector, { UserRole } from '../ui/RoleSelector';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -11,7 +12,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState<UserRole>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -86,21 +87,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
           />
         </div>
 
-        <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-            Role
-          </label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="student">Student</option>
-            <option value="recruiter">Recruiter</option>
-            <option value="mentor">Mentor</option>
-          </select>
-        </div>
+        <RoleSelector
+          value={role}
+          onChange={setRole}
+          label="I am a"
+          showDescriptions={true}
+        />
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">

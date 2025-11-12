@@ -55,7 +55,7 @@ const Resume: React.FC<ResumeProps> = ({
   return (
     <div
       id="resume-preview"
-      className="w-full flex justify-center bg-gray-50 min-h-screen p-6 overflow-auto print:bg-white print:p-0"
+      className="w-full flex justify-center bg-white min-h-full overflow-auto print:bg-white print:p-0"
     >
       {renderTemplate()}
     </div>

@@ -15,12 +15,7 @@ const Hero: React.FC = () => {
           From resume building to placement preparation - everything on one platform. Boost your career with AI automation and personalized guidance.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href="#"
-            className="w-full sm:w-auto inline-block bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105"
-          >
-            Get Started
-          </a>
+          
           <a
             href="#"
             className="w-full sm:w-auto inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-300"

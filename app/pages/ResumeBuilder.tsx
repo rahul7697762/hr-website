@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Form from "../components/resume/Form";
 import Resume from "../components/resume/Resume";
 import AISuggestions from "../components/AISuggestions";
 import DownloadDropdown from "../components/resume/DownloadDropdown";
 import { ResumeData, ResumeColor } from "../types/resume";
+import { ResumeService, useAutoSave } from "../services/resumeService";
+import { useAuth } from "../contexts/AuthContext";
 
 // 🎨 Color Presets
 const colorPresets: ResumeColor[] = [
@@ -115,16 +117,76 @@ const initialData: ResumeData = {
 interface ResumeBuilderProps {
   selectedTemplate?: number;
   onBackToTemplates?: () => void;
+  resumeId?: number;
 }
 
 const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
   selectedTemplate = 0,
   onBackToTemplates,
+  resumeId,
 }) => {
   const [data, setData] = useState<ResumeData>(initialData);
   const [color, setColor] = useState<ResumeColor>(colorPresets[0]);
   const [template, setTemplate] = useState<number>(selectedTemplate);
   const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [currentResumeId, setCurrentResumeId] = useState<number | undefined>();
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { user } = useAuth();
+  
+  // Load existing resume if resumeId is provided
+  useEffect(() => {
+    const loadExistingResume = async () => {
+      if (resumeId) {
+        try {
+          setIsLoading(true);
+          const resume = await ResumeService.getResume(resumeId);
+          setData(resume.resume_data);
+          setTemplate(resume.template_id);
+          if (resume.color_scheme) {
+            setColor(resume.color_scheme);
+          }
+          setCurrentResumeId(resume.resume_id);
+        } catch (error) {
+          console.error('Failed to load resume:', error);
+          setSaveStatus('error');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadExistingResume();
+  }, [resumeId]);
+  
+  // Auto-save functionality
+  const { isSaving, lastSaved, lastSavedId } = useAutoSave(
+    data,
+    template,
+    color,
+    user?.user_id?.toString(),
+    30000 // Auto-save every 30 seconds
+  );
+
+  // Update current resume ID when auto-save creates a new resume
+  useEffect(() => {
+    if (lastSavedId && lastSavedId !== currentResumeId) {
+      setCurrentResumeId(lastSavedId);
+    }
+  }, [lastSavedId, currentResumeId]);
+
+  // Update save status based on auto-save state
+  useEffect(() => {
+    if (isSaving) {
+      setSaveStatus('saving');
+    } else if (lastSaved) {
+      setSaveStatus('saved');
+      // Clear the saved status after 3 seconds
+      const timeout = setTimeout(() => setSaveStatus(null), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isSaving, lastSaved]);
 
   const handleApplySuggestion = (section: keyof ResumeData, newValue: string) => {
     setData(prev => ({
@@ -132,6 +194,53 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
       [section]: newValue
     }));
   };
+
+  const handleManualSave = async () => {
+    try {
+      setSaveStatus('saving');
+      console.log('Manual save started with:', {
+        hasData: !!data,
+        template,
+        hasColor: !!color,
+        userId: user?.user_id,
+        currentResumeId
+      });
+      
+      const savedResume = await ResumeService.autoSave(
+        data,
+        template,
+        color,
+        user?.user_id?.toString(),
+        currentResumeId
+      );
+      
+      console.log('Manual save successful:', savedResume);
+      setCurrentResumeId(savedResume.resume_id);
+      setSaveStatus('saved');
+      
+      // Show success message
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (error) {
+      console.error('Manual save failed:', error);
+      setSaveStatus('error');
+      
+      // Show error for longer to help with debugging
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-8 shadow-lg">
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-lg font-medium text-gray-700">Loading your resume...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-5">
@@ -146,7 +255,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[500px_1fr] xl:grid-cols-[500px_1fr] gap-5 max-w-[1800px] mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[700px_1fr] xl:grid-cols-[800px_1fr] gap-5 max-w-[2000px] mx-auto">
         {/* Left Side - Form */}
         <div className="bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] overflow-y-auto max-h-[calc(100vh-40px)]">
           <Form
@@ -160,10 +269,107 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
         </div>
 
         {/* Right Side - Preview */}
-        <div className="bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] p-5 overflow-y-auto max-h-[calc(100vh-40px)]">
-          <div className="flex justify-between items-center mb-5 pb-4 border-b-2 border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-800 m-0">Live Preview</h2>
+        <div className="bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] overflow-y-auto max-h-[calc(100vh-40px)]">
+          <div className="flex justify-between items-center p-5 pb-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-gray-800 m-0">Live Preview</h2>
+              {/* Save Status Indicator */}
+              {saveStatus && (
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                  saveStatus === 'saving' ? 'bg-blue-100 text-blue-700' :
+                  saveStatus === 'saved' ? 'bg-green-100 text-green-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {saveStatus === 'saving' && (
+                    <>
+                      <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <>
+                      <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                      Saved {lastSaved && new Date(lastSaved).toLocaleTimeString()}
+                    </>
+                  )}
+                  {saveStatus === 'error' && (
+                    <>
+                      <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                      Save failed
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex gap-3">
+              {/* Manual Save Button */}
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white border-none rounded-lg text-sm font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleManualSave}
+                disabled={isSaving}
+              >
+                💾 Save Now
+              </button>
+              
+              {/* Debug Test Buttons - Remove in production */}
+              <div className="flex gap-1">
+                <button 
+                  className="px-2 py-1 bg-gray-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-gray-600"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/resumes/test');
+                      const result = await response.json();
+                      console.log('Database test result:', result);
+                      alert(`DB Test: ${result.success ? 'OK' : 'Failed'}\nResumes: ${result.totalResumes}\nCheck console for details`);
+                    } catch (error) {
+                      console.error('Test failed:', error);
+                      alert('Test failed - check console');
+                    }
+                  }}
+                >
+                  🔧 Test
+                </button>
+                <button 
+                  className="px-2 py-1 bg-green-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-green-600"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/resumes/debug', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'create-test-resume' })
+                      });
+                      const result = await response.json();
+                      console.log('Create test result:', result);
+                      alert(`Create Test: ${result.success ? 'OK' : 'Failed'}\n${result.message}`);
+                    } catch (error) {
+                      console.error('Create test failed:', error);
+                      alert('Create test failed - check console');
+                    }
+                  }}
+                >
+                  ➕ Create Test
+                </button>
+                <button 
+                  className="px-2 py-1 bg-blue-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-blue-600"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/resumes/debug', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'list-resumes' })
+                      });
+                      const result = await response.json();
+                      console.log('List resumes result:', result);
+                      alert(`List: ${result.success ? 'OK' : 'Failed'}\nFound: ${result.count} resumes`);
+                    } catch (error) {
+                      console.error('List failed:', error);
+                      alert('List failed - check console');
+                    }
+                  }}
+                >
+                  📋 List
+                </button>
+              </div>
               <button 
                 className={`px-5 py-2.5 text-white border-none rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 ${
                   showAISuggestions 
@@ -174,13 +380,13 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
               >
                 🤖 AI Suggestions
               </button>
-              <DownloadDropdown data={data} />
+              <DownloadDropdown data={data} templateId={template} />
             </div>
           </div>
 
           {/* AI Suggestions Panel */}
           {showAISuggestions && (
-            <div className="mb-5 animate-[slideDown_0.3s_ease]">
+            <div className="px-5 mb-5 animate-[slideDown_0.3s_ease]">
               <AISuggestions 
                 resumeData={data as any} 
                 onApplySuggestion={handleApplySuggestion as any}
@@ -189,7 +395,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
           )}
 
           {/* Resume Preview */}
-          <div className="bg-gray-50 rounded-lg p-5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] flex justify-center">
+          <div className="w-full flex justify-center">
             <Resume data={data} color={color} selectedTemplate={template} />
           </div>
         </div>

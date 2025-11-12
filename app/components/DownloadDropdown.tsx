@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generatePDF, generateDOC, printResume } from '../utils/documentGenerator';
-import { ProfessionalResumeData } from '../types/resume';
+import { ResumeData } from '../types/resume';
 
 interface DownloadDropdownProps {
-  resumeData?: ProfessionalResumeData;
+  resumeData?: ResumeData;
   elementId?: string;
   filename?: string;
   className?: string;

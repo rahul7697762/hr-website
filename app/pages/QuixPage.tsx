@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { quizApi, QuizQuestion } from "../api/quizApi";
 import { Button } from "../components/ui/button";
 
@@ -196,11 +196,7 @@ export default function QuizPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-6">
-            <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium">
-              ← Back to Home
-            </Link>
-          </div>
+         
 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
@@ -498,11 +494,7 @@ export default function QuizPage() {
             <Button onClick={restartQuiz} className="bg-blue-600 hover:bg-blue-700 text-white">
               Try Again
             </Button>
-            <Link to="/">
-              <Button className="bg-gray-600 hover:bg-gray-700 text-white">
-                Back to Home
-              </Button>
-            </Link>
+            
           </div>
         </div>
       </div>
@@ -525,9 +517,7 @@ export default function QuizPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 flex justify-between items-center flex-wrap gap-3">
-          <Link to="/" className="text-blue-600 hover:text-blue-800 font-medium">
-            ← Back to Home
-          </Link>
+          
           <div className="flex items-center gap-3">
             {/* Quiz Type Badge */}
             {quizType === "technical" && technicalSubject && (

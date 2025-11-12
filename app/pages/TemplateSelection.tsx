@@ -1,28 +1,16 @@
 import React, { useState } from 'react';
 
-// Import template images
-import template0 from '../images/resume_templates-images-0.jpg';
-import template1 from '../images/resume_templates-images-1.jpg';
-import template2 from '../images/resume_templates-images-2.jpg';
-import template3 from '../images/resume_templates-images-3.jpg';
-import template4 from '../images/resume_templates-images-4.jpg';
-import template5 from '../images/resume_templates-images-5.jpg';
-import template6 from '../images/resume_templates-images-6.jpg';
-import template7 from '../images/resume_templates-images-7.jpg';
-import template8 from '../images/resume_templates-images-8.jpg';
-import template9 from '../images/resume_templates-images-9.jpg';
-
 const templates = [
-  { id: 0, name: 'Professional with Photo', image: template0, description: 'Clean layout with photo header, perfect for corporate roles' },
-  { id: 1, name: 'Modern Executive', image: template1, description: 'Contemporary two-column design with elegant styling' },
-  { id: 2, name: 'Minimal Professional', image: template2, description: 'Simple and clean, emphasizes content over design' },
-  { id: 3, name: 'Creative Designer', image: template3, description: 'Bold layout with visual elements for creative fields' },
-  { id: 4, name: 'Executive Premium', image: template4, description: 'Sophisticated design for senior leadership positions' },
-  { id: 5, name: 'Tech Professional', image: template5, description: 'Modern layout optimized for tech and IT roles' },
-  { id: 6, name: 'Academic Scholar', image: template6, description: 'Traditional format ideal for academic and research positions' },
-  { id: 7, name: 'Designer Portfolio', image: template7, description: 'Visual-focused design to showcase creative work' },
-  { id: 8, name: 'Startup Dynamic', image: template8, description: 'Energetic and modern design for startup culture' },
-  { id: 9, name: 'Corporate Standard', image: template9, description: 'Classic professional format for large corporations' }
+  { id: 0, name: 'Professional with Photo', image: '/images/resume_templates-images-0.jpg', description: 'Clean layout with photo header, perfect for corporate roles' },
+  { id: 1, name: 'Modern Executive', image: '/images/resume_templates-images-1.jpg', description: 'Contemporary two-column design with elegant styling' },
+  { id: 2, name: 'Minimal Professional', image: '/images/resume_templates-images-2.jpg', description: 'Simple and clean, emphasizes content over design' },
+  { id: 3, name: 'Creative Designer', image: '/images/resume_templates-images-3.jpg', description: 'Bold layout with visual elements for creative fields' },
+  { id: 4, name: 'Executive Premium', image: '/images/resume_templates-images-4.jpg', description: 'Sophisticated design for senior leadership positions' },
+  { id: 5, name: 'Tech Professional', image: '/images/resume_templates-images-5.jpg', description: 'Modern layout optimized for tech and IT roles' },
+  { id: 6, name: 'Academic Scholar', image: '/images/resume_templates-images-6.jpg', description: 'Traditional format ideal for academic and research positions' },
+  { id: 7, name: 'Designer Portfolio', image: '/images/resume_templates-images-7.jpg', description: 'Visual-focused design to showcase creative work' },
+  { id: 8, name: 'Startup Dynamic', image: '/images/resume_templates-images-8.jpg', description: 'Energetic and modern design for startup culture' },
+  { id: 9, name: 'Corporate Standard', image: '/images/resume_templates-images-9.jpg', description: 'Classic professional format for large corporations' }
 ];
 
 interface TemplateSelectionProps {
@@ -93,6 +81,21 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = ({ onTemplateSelect 
                   src={template.image}
                   alt={template.name}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.fallback-content')) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'fallback-content absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-50';
+                      fallback.innerHTML = `
+                        <div class="text-6xl mb-4">📄</div>
+                        <div class="text-lg font-medium">Template ${template.id + 1}</div>
+                        <div class="text-sm">Preview not available</div>
+                      `;
+                      parent.appendChild(fallback);
+                    }
+                  }}
                 />
                 {selectedTemplate === template.id && (
                   <div className="absolute inset-0 bg-indigo-500/85 flex items-center justify-center animate-[fadeIn_0.3s_ease]">

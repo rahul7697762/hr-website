@@ -50,8 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateTo }) => {
         ];
       default:
         return [
-          { title: 'Build Resume', description: 'Create and edit your resume', action: () => navigateTo?.('resumeBuilder') },
-          { title: 'Professional Resume', description: 'Use advanced professional template', action: () => navigateTo?.('professionalResume') },
+          { title: 'Resume Builder', description: 'Create and edit professional resumes', action: () => navigateTo?.('resumeBuilder') },
           { title: 'ATS Analysis', description: 'Optimize your resume for ATS', action: () => navigateTo?.('atsTools') },
           { title: 'Code Playground', description: 'Write and run code interactively', action: () => navigateTo?.('codePlayground') },
           { title: 'Mock Interview', description: 'Practice interview skills', action: () => {} },

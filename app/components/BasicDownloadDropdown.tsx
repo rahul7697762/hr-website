@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { generatePDF, generateBasicDOC, printResume } from '../utils/documentGenerator';
-import { ResumeData } from '../contexts/ResumeContext';
+import { generatePDF, generateDOC, printResume } from '../utils/documentGenerator';
+import { ResumeData } from '../types/resume';
 
 interface BasicDownloadDropdownProps {
   onDownloadPDF: () => void;
@@ -50,7 +50,7 @@ const BasicDownloadDropdown: React.FC<BasicDownloadDropdownProps> = ({
           break;
         case 'doc':
           if (resumeData) {
-            await generateBasicDOC(resumeData, filename);
+            await generateDOC(resumeData, filename);
           } else {
             throw new Error('Resume data is required for DOC generation');
           }

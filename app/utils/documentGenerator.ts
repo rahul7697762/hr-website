@@ -2,8 +2,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
-import { ProfessionalResumeData } from '../types/resume';
-import { ResumeData } from '../contexts/ResumeContext';
+import { ResumeData } from '../types/resume';
 
 // PDF Generation using html2canvas and jsPDF
 export const generatePDF = async (elementId: string, filename: string = 'resume') => {
@@ -59,7 +58,7 @@ export const generatePDF = async (elementId: string, filename: string = 'resume'
 };
 
 // DOC Generation using docx library
-export const generateDOC = async (data: ProfessionalResumeData, filename: string = 'resume') => {
+export const generateDOC = async (data: ResumeData, filename: string = 'resume') => {
   try {
     const doc = new Document({
       sections: [
@@ -69,7 +68,7 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
             new Paragraph({
               children: [
                 new TextRun({
-                  text: data.personalInfo.fullName,
+                  text: data.contact?.name || 'Your Name',
                   bold: true,
                   size: 32,
                   color: '1f4e79',
@@ -83,24 +82,24 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `Mobile: ${data.personalInfo.phone} | `,
+                  text: `Mobile: ${data.contact?.phone || ''} | `,
                   size: 20,
                 }),
                 new TextRun({
-                  text: `Email: ${data.personalInfo.email}`,
+                  text: `Email: ${data.contact?.email || ''}`,
                   size: 20,
                   color: '0066cc',
                 }),
-                ...(data.personalInfo.github ? [
+                ...(data.contact?.github ? [
                   new TextRun({
-                    text: ` | GitHub: ${data.personalInfo.github}`,
+                    text: ` | GitHub: ${data.contact.github}`,
                     size: 20,
                     color: '0066cc',
                   })
                 ] : []),
-                ...(data.personalInfo.linkedin ? [
+                ...(data.contact?.linkedin ? [
                   new TextRun({
-                    text: ` | LinkedIn: ${data.personalInfo.linkedin}`,
+                    text: ` | LinkedIn: ${data.contact.linkedin}`,
                     size: 20,
                     color: '0066cc',
                   })
@@ -109,42 +108,58 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
               spacing: { after: 300 },
             }),
 
-            // Skills Section
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: 'SKILLS',
-                  bold: true,
-                  size: 24,
-                  color: '1f4e79',
-                }),
-              ],
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 200, after: 200 },
-            }),
-
-            // Skills content
-            ...Object.entries(data.skills).map(([category, skills]) => {
-              if (!skills || skills.length === 0) return null;
-              return new Paragraph({
+            // Objective Section
+            ...(data.objective ? [
+              new Paragraph({
                 children: [
                   new TextRun({
-                    text: `${category.replace(/([A-Z])/g, ' $1').trim()}: `,
+                    text: 'OBJECTIVE',
                     bold: true,
-                    size: 20,
+                    size: 24,
                     color: '1f4e79',
                   }),
+                ],
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200, after: 200 },
+              }),
+              new Paragraph({
+                children: [
                   new TextRun({
-                    text: skills.join(', '),
+                    text: data.objective,
                     size: 20,
                   }),
                 ],
-                spacing: { after: 100 },
-              });
-            }).filter(Boolean),
+                spacing: { after: 300 },
+              }),
+            ] : []),
+
+            // Skills Section
+            ...(data.skills && data.skills.length > 0 ? [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'SKILLS',
+                    bold: true,
+                    size: 24,
+                    color: '1f4e79',
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200, after: 200 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: data.skills.join(', '),
+                    size: 20,
+                  }),
+                ],
+                spacing: { after: 300 },
+              }),
+            ] : []),
 
             // Experience Section
-            ...(data.experience.length > 0 ? [
+            ...(data.experience && data.experience.length > 0 ? [
               new Paragraph({
                 children: [
                   new TextRun({
@@ -161,13 +176,13 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: `${exp.company} | ${exp.location}`,
+                      text: `${exp.company || ''} | ${exp.location || ''}`,
                       bold: true,
                       size: 20,
                       color: '1f4e79',
                     }),
                     new TextRun({
-                      text: `\t${exp.duration}`,
+                      text: `\t${exp.year || ''}`,
                       bold: true,
                       size: 20,
                     }),
@@ -177,7 +192,7 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: exp.position,
+                      text: exp.position || '',
                       italics: true,
                       bold: true,
                       size: 20,
@@ -185,22 +200,104 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
                   ],
                   spacing: { after: 100 },
                 }),
-                ...exp.description.map(desc => 
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: `• ${desc}`,
-                        size: 20,
-                      }),
-                    ],
-                    spacing: { after: 50 },
-                  })
-                ),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `• ${exp.description || ''}`,
+                      size: 20,
+                    }),
+                  ],
+                  spacing: { after: 100 },
+                }),
               ]),
             ] : []),
 
+            // Education Section
+            ...(data.education && data.education.length > 0 ? [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'EDUCATION',
+                    bold: true,
+                    size: 24,
+                    color: '1f4e79',
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 300, after: 200 },
+              }),
+              ...data.education.flatMap(edu => [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `${edu.institution || ''} | ${edu.year || ''}`,
+                      bold: true,
+                      size: 20,
+                      color: '1f4e79',
+                    }),
+                  ],
+                  spacing: { after: 50 },
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: edu.course || '',
+                      italics: true,
+                      bold: true,
+                      size: 20,
+                    }),
+                  ],
+                  spacing: { after: 100 },
+                }),
+                ...(edu.description ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `• ${edu.description}`,
+                        size: 20,
+                      }),
+                    ],
+                    spacing: { after: 100 },
+                  }),
+                ] : []),
+              ]),
+            ] : []),
+
+            // Certifications Section
+            ...(data.certifications && data.certifications.length > 0 ? [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: 'CERTIFICATIONS',
+                    bold: true,
+                    size: 24,
+                    color: '1f4e79',
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 300, after: 200 },
+              }),
+              ...data.certifications.map(cert => 
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `• ${cert.course || ''} - ${cert.institution || ''}`,
+                      bold: true,
+                      size: 20,
+                    }),
+                    new TextRun({
+                      text: `\t${cert.year || ''}`,
+                      bold: true,
+                      size: 20,
+                    }),
+                  ],
+                  spacing: { after: 50 },
+                })
+              ),
+            ] : []),
+
             // Projects Section
-            ...(data.projects.length > 0 ? [
+            ...(data.projects && data.projects.length > 0 ? [
               new Paragraph({
                 children: [
                   new TextRun({
@@ -213,100 +310,11 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
                 heading: HeadingLevel.HEADING_2,
                 spacing: { before: 300, after: 200 },
               }),
-              ...data.projects.flatMap(project => [
+              ...data.projects.map(project => 
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: project.name,
-                      bold: true,
-                      size: 20,
-                      color: '1f4e79',
-                    }),
-                    new TextRun({
-                      text: `\t${project.duration}`,
-                      bold: true,
-                      size: 20,
-                    }),
-                  ],
-                  spacing: { after: 50 },
-                }),
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `Tech | ${project.technologies.join(', ')}`,
-                      italics: true,
-                      bold: true,
-                      size: 20,
-                    }),
-                  ],
-                  spacing: { after: 100 },
-                }),
-                ...project.description.map(desc => 
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: `• ${desc}`,
-                        size: 20,
-                      }),
-                    ],
-                    spacing: { after: 50 },
-                  })
-                ),
-              ]),
-            ] : []),
-
-            // Certificates Section
-            ...(data.certificates.length > 0 ? [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: 'CERTIFICATES',
-                    bold: true,
-                    size: 24,
-                    color: '1f4e79',
-                  }),
-                ],
-                heading: HeadingLevel.HEADING_2,
-                spacing: { before: 300, after: 200 },
-              }),
-              ...data.certificates.map(cert => 
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `• ${cert.name} - ${cert.issuer}`,
-                      bold: true,
-                      size: 20,
-                    }),
-                    new TextRun({
-                      text: `\t${cert.date}`,
-                      bold: true,
-                      size: 20,
-                    }),
-                  ],
-                  spacing: { after: 50 },
-                })
-              ),
-            ] : []),
-
-            // Achievements Section
-            ...(data.achievements.length > 0 ? [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: 'ACHIEVEMENTS',
-                    bold: true,
-                    size: 24,
-                    color: '1f4e79',
-                  }),
-                ],
-                heading: HeadingLevel.HEADING_2,
-                spacing: { before: 300, after: 200 },
-              }),
-              ...data.achievements.map(achievement => 
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `• ${achievement}`,
+                      text: `• ${project.title || ''}: ${project.description || ''}`,
                       size: 20,
                     }),
                   ],
@@ -328,50 +336,7 @@ export const generateDOC = async (data: ProfessionalResumeData, filename: string
   }
 };
 
-// Convert basic ResumeData to ProfessionalResumeData format
-const convertBasicToProfessional = (basicData: ResumeData): ProfessionalResumeData => {
-  // Parse skills from string to categorized format
-  const skillsArray = basicData.skills ? basicData.skills.split('\n').filter(s => s.trim()) : [];
-  
-  // Parse experience from string to structured format
-  const experienceArray = basicData.experience ? [{
-    company: 'Experience',
-    position: '',
-    location: '',
-    duration: '',
-    description: basicData.experience.split('\n').filter(s => s.trim())
-  }] : [];
 
-  // Parse education from string to structured format
-  const educationAsProject = basicData.education ? [{
-    name: 'Education',
-    duration: '',
-    technologies: [],
-    description: basicData.education.split('\n').filter(s => s.trim())
-  }] : [];
-
-  return {
-    personalInfo: {
-      fullName: basicData.fullName || '',
-      email: basicData.email || '',
-      phone: basicData.phone || '',
-      location: basicData.address || '',
-    },
-    skills: {
-      languages: skillsArray,
-    },
-    experience: experienceArray,
-    projects: educationAsProject,
-    certificates: [],
-    achievements: []
-  };
-};
-
-// DOC Generation for basic resume data
-export const generateBasicDOC = async (basicData: ResumeData, filename: string = 'resume') => {
-  const professionalData = convertBasicToProfessional(basicData);
-  return generateDOC(professionalData, filename);
-};
 
 // Print function (for browser's print dialog)
 export const printResume = () => {

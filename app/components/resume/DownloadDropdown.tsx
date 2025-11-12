@@ -3,15 +3,19 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DownloadDropdownProps {
   data: any;
+  templateId?: number;
 }
 
-const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
+const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data, templateId = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,9 +34,46 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
     };
   }, [isOpen]);
 
+  // Save resume to Supabase
+  const saveResumeToDatabase = async () => {
+    if (!user) {
+      console.log('User not authenticated, skipping database save');
+      return;
+    }
+
+    try {
+      const resumeName = data.contact?.name || 'Untitled Resume';
+      
+      const { data: resumeData, error } = await supabase
+        .from('resumes')
+        .insert([
+          {
+            user_id: user.user_id,
+            resume_name: resumeName,
+            template_id: templateId.toString(),
+            resume_data: data,
+            is_active: true
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving resume to database:', error);
+      } else {
+        console.log('Resume saved to database:', resumeData);
+      }
+    } catch (error) {
+      console.error('Failed to save resume:', error);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     setIsOpen(false);
+    
+    // Save to database when downloading
+    await saveResumeToDatabase();
     
     try {
       // Wait a bit for dropdown to close
@@ -77,6 +118,9 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
         })
         .join('\n');
 
+      // Remove lab() color functions from styles (not supported by html2canvas)
+      const cleanedStyles = styles.replace(/lab\([^)]+\)/g, '#000000');
+      
       // Create complete HTML document
       const completeHTML = `
         <!DOCTYPE html>
@@ -84,10 +128,11 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
           <head>
             <meta charset="UTF-8">
             <style>
-              ${styles}
+              ${cleanedStyles}
               body { margin: 0; padding: 0; }
               #resume-preview { background: white !important; }
               .right-content { box-shadow: none !important; border: none !important; }
+              * { color: inherit !important; }
             </style>
           </head>
           <body>
@@ -96,33 +141,50 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
         </html>
       `;
 
-      console.log('Sending to backend for PDF generation...');
-      const response = await fetch('http://localhost:5000/api/pdf/generate-pdf-html', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html: completeHTML,
-          filename: data.contact?.name?.replace(/\s+/g, '_') || 'resume'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF from backend');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${data.contact?.name?.replace(/\s+/g, '_') || 'resume'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      console.log('Generating PDF using html2canvas and jsPDF...');
       
-      console.log('PDF downloaded successfully');
+      // Create a temporary container for rendering
+      const tempContainer = document.createElement('div');
+      tempContainer.innerHTML = completeHTML;
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = '850px';
+      document.body.appendChild(tempContainer);
+
+      try {
+        // Wait for fonts and images to load
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Use html2canvas to capture the content
+        const canvas = await html2canvas(tempContainer, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          allowTaint: true,
+          foreignObjectRendering: false
+        });
+
+        // Create PDF with jsPDF
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        const imgWidth = 210; // A4 width in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        
+        // Download the PDF
+        pdf.save(`${data.contact?.name?.replace(/\s+/g, '_') || 'resume'}.pdf`);
+        console.log('PDF downloaded successfully');
+      } finally {
+        // Clean up
+        document.body.removeChild(tempContainer);
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -133,6 +195,11 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({ data }) => {
 
   const handleDownloadDOC = async () => {
     setIsDownloading(true);
+    setIsOpen(false);
+    
+    // Save to database when downloading
+    await saveResumeToDatabase();
+    
     try {
       const doc = new Document({
         sections: [

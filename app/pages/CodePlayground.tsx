@@ -5,20 +5,61 @@ import SplitPane from "react-split-pane-next";
 export default function CodePlayground() {
   const [language, setLanguage] = useState("javascript");
   const [theme, setTheme] = useState("monokai");
-  const [code, setCode] = useState("// Start coding...");
+  const [code, setCode] = useState("// JavaScript runs in your browser!\nconsole.log('Hello, World!');\nconsole.log('2 + 2 =', 2 + 2);");
   const [output, setOutput] = useState("");
 
   const handleRun = async () => {
+    setOutput("⏳ Running code...");
+
+    // Client-side execution for JavaScript only
+    if (language === "javascript") {
+      try {
+        // Capture console.log output
+        const logs: string[] = [];
+        const originalLog = console.log;
+        console.log = (...args: any[]) => {
+          logs.push(args.map(arg => 
+            typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+          ).join(' '));
+        };
+
+        // Execute code in a try-catch
+        try {
+          // eslint-disable-next-line no-eval
+          eval(code);
+          console.log = originalLog;
+          setOutput(logs.length > 0 ? logs.join('\n') : '✅ Code executed successfully (no output)');
+        } catch (error) {
+          console.log = originalLog;
+          setOutput(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      } catch (err) {
+        setOutput(`❌ Execution failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      return;
+    }
+
+    // For other languages, use Next.js API route
     try {
-      const res = await fetch("http://localhost:5000/api/execute", {
+      const res = await fetch('/api/execute', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, language }),
       });
+      
+      if (!res.ok) {
+        throw new Error('API request failed');
+      }
+      
       const data = await res.json();
       setOutput(data.output || data.error || "No output");
     } catch (err) {
-      setOutput("⚠️ Backend not reachable");
+      setOutput(`⚠️ Error executing ${language} code.\n\n` +
+        `Make sure you have the required compiler/interpreter installed:\n` +
+        `- Python: Install Python 3.x\n` +
+        `- C++: Install MinGW (g++)\n` +
+        `- Java: Install JDK\n\n` +
+        `Error: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 

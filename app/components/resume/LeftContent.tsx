@@ -21,7 +21,7 @@ const LeftContent: React.FC<LeftContentProps> = ({ data, color }) => {
       className="left-content"
       style={{
         backgroundColor: color.background,
-        padding: "1.5rem",
+        padding: ".5rem",
         color: "#fff",
       }}
     >

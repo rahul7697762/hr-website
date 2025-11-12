@@ -10,7 +10,7 @@ const Template9: React.FC<TemplateProps> = ({ data, color }) => {
   const { contact, objective, education, projects, certifications } = data;
 
   return (
-    <div className="w-[850px] mx-auto bg-white text-gray-900 font-sans p-10 shadow-md border border-gray-200">
+    <div className="w-[850px] mx-auto bg-white text-gray-900 font-sans p-10">
       {/* ===== HEADER ===== */}
       <header className="border-b-2 pb-4 mb-6 text-center" style={{ borderColor: color.primary }}>
         <h1 className="text-3xl font-bold uppercase tracking-wide">{contact.name}</h1>
@@ -101,10 +101,7 @@ const Template9: React.FC<TemplateProps> = ({ data, color }) => {
           <div className="space-y-3 text-sm text-gray-700">
             {projects.map((p, i) => (
               <div key={i}>
-                <h4 className="font-semibold text-gray-900">{p.title || p.name}</h4>
-                {p.duration && (
-                  <p className="text-gray-500 text-xs mb-1">{p.duration}</p>
-                )}
+                <h4 className="font-semibold text-gray-900">{p.title}</h4>
                 <p className="text-gray-700">{p.description}</p>
                 {p.link && (
                   <a
@@ -134,7 +131,7 @@ const Template9: React.FC<TemplateProps> = ({ data, color }) => {
           <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
             {certifications.map((cert, i) => (
               <li key={i}>
-                {cert.course || cert.name} —{" "}
+                {cert.course} —{" "}
                 <span className="italic">{cert.institution || cert.issuer}</span>
                 {cert.year && <span className="text-gray-500"> ({cert.year})</span>}
               </li>

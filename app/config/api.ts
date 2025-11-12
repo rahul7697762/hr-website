@@ -1,9 +1,12 @@
 // API Configuration
-const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isDevelopment = typeof window !== 'undefined' 
+  ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  : process.env.NODE_ENV === 'development';
+  
 const VERCEL_API_URL = 'https://ai-edu-platform-backend.vercel.app';
 const LOCAL_API_URL = 'http://localhost:5000';
 
-export const API_BASE_URL = isDevelopment ? LOCAL_API_URL : VERCEL_API_URL;
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || (isDevelopment ? LOCAL_API_URL : VERCEL_API_URL);
 
 // Full API endpoints
 export const API_ENDPOINTS = {

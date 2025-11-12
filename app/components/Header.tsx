@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import ThemeToggleButton from './ThemeToggleButton';
 import UserProfile from './auth/UserProfile';
 import { useAuth } from '../contexts/AuthContext';
+import { useRoleAccess } from '../hooks/useRoleAccess';
 
-type Page = 'home' | 'resumeBuilder' | 'professionalResume' | 'atsTools' | 'auth' | 'dashboard' | 'codePlayground' | 'quiz';
-
-const NavLink: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
-  <button onClick={onClick} className="text-gray-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors duration-200 px-3 py-2 rounded-md text-sm font-medium">
+const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
+  <Link href={href} className="text-gray-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors duration-200 px-3 py-2 rounded-md text-sm font-medium">
     {children}
-  </button>
+  </Link>
 );
 
-const MobileNavLink: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
-    <button onClick={onClick} className="text-left w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+const MobileNavLink: React.FC<{ href: string; onClick?: () => void; children: React.ReactNode }> = ({ href, onClick, children }) => (
+    <Link href={href} onClick={onClick} className="text-left w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white block px-3 py-2 rounded-md text-base font-medium">
       {children}
-    </button>
+    </Link>
   );
 
 const DropdownNavLink: React.FC<{ children: React.ReactNode; isOpen: boolean; onToggle: () => void }> = ({ children, isOpen, onToggle }) => (
@@ -31,41 +31,42 @@ const DropdownNavLink: React.FC<{ children: React.ReactNode; isOpen: boolean; on
   </div>
 );
 
-const DropdownItem: React.FC<{ onClick: () => void; children: React.ReactNode; description?: string }> = ({ onClick, children, description }) => (
-  <button
+const DropdownItem: React.FC<{ href: string; onClick?: () => void; children: React.ReactNode; description?: string }> = ({ href, onClick, children, description }) => (
+  <Link
+    href={href}
     onClick={onClick}
-    className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+    className="block w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
   >
     <div className="font-medium">{children}</div>
     {description && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{description}</div>}
-  </button>
+  </Link>
 );
 
-interface HeaderProps {
-    navigateTo: (page: Page) => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
+const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [resumeDropdownOpen, setResumeDropdownOpen] = useState(false);
     const [placementDropdownOpen, setPlacementDropdownOpen] = useState(false);
-    const { isAuthenticated } = useAuth();
+    const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+    const { isAuthenticated, user } = useAuth();
+    const { canAccessAdmin, canPostJobs, canMentorStudents } = useRoleAccess();
     const resumeDropdownRef = useRef<HTMLDivElement>(null);
     const placementDropdownRef = useRef<HTMLDivElement>(null);
+    const adminDropdownRef = useRef<HTMLDivElement>(null);
 
-    const handleMobileNavClick = (page: Page) => {
-        navigateTo(page);
+    const handleMobileNavClick = () => {
         setIsOpen(false);
     }
 
-    const handleResumeBuilderClick = (page: Page) => {
-        navigateTo(page);
+    const handleResumeBuilderClick = () => {
         setResumeDropdownOpen(false);
     }
 
-    const handlePlacementPrepClick = (page: Page) => {
-        navigateTo(page);
+    const handlePlacementPrepClick = () => {
         setPlacementDropdownOpen(false);
+    }
+
+    const handleAdminClick = () => {
+        setAdminDropdownOpen(false);
     }
 
     // Close dropdown when clicking outside
@@ -76,6 +77,9 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
             }
             if (placementDropdownRef.current && !placementDropdownRef.current.contains(event.target as Node)) {
                 setPlacementDropdownOpen(false);
+            }
+            if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
+                setAdminDropdownOpen(false);
             }
         };
 
@@ -90,12 +94,12 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <a href="#" onClick={() => navigateTo('home')} className="text-2xl font-bold text-slate-900 dark:text-white">EduAI</a>
+            <Link href="/" className="text-2xl font-bold text-slate-900 dark:text-white">EduAI</Link>
           </div>
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-1">
-              <NavLink onClick={() => navigateTo('home')}>Home</NavLink>
-              {isAuthenticated && <NavLink onClick={() => navigateTo('dashboard')}>Dashboard</NavLink>}
+              <NavLink href="/">Home</NavLink>
+              {isAuthenticated && <NavLink href="/dashboard">Dashboard</NavLink>}
               
               {/* Resume Builder Dropdown */}
               <div className="relative" ref={resumeDropdownRef}>
@@ -110,23 +114,27 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
                   <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="py-1">
                       <DropdownItem 
-                        onClick={() => handleResumeBuilderClick('resumeBuilder')}
-                        description="Simple resume builder with basic templates"
+                        href="/resume-builder"
+                        onClick={handleResumeBuilderClick}
+                        description="Create professional resumes with multiple templates"
                       >
-                        Basic Resume Builder
+                        Resume Builder
                       </DropdownItem>
-                      <DropdownItem 
-                        onClick={() => handleResumeBuilderClick('professionalResume')}
-                        description="Advanced professional template with detailed sections"
-                      >
-                        Professional Resume
-                      </DropdownItem>
+                      {isAuthenticated && (
+                        <DropdownItem 
+                          href="/my-resumes"
+                          onClick={handleResumeBuilderClick}
+                          description="View and manage your saved resumes"
+                        >
+                          My Resumes
+                        </DropdownItem>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
               
-              <NavLink onClick={() => navigateTo('atsTools')}>ATS Tools</NavLink>
+              <NavLink href="/ats-tools">ATS Tools</NavLink>
               
               {/* Placement Prep Dropdown */}
               <div className="relative" ref={placementDropdownRef}>
@@ -141,25 +149,33 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
                   <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="py-1">
                       <DropdownItem 
-                        onClick={() => handlePlacementPrepClick('quiz')}
+                        href="/interview-prep"
+                        onClick={handlePlacementPrepClick}
+                        description="Prepare for interviews with AI-powered tools"
+                      >
+                        🎯 Interview Prep
+                      </DropdownItem>
+                      <DropdownItem 
+                        href="/quiz"
+                        onClick={handlePlacementPrepClick}
                         description="Test your knowledge with interactive quizzes"
                       >
                         📝 Quiz
                       </DropdownItem>
                       <DropdownItem 
-                        onClick={() => {}}
+                        href="#"
                         description="Practice coding problems and algorithms"
                       >
                         💻 Coding Practice
                       </DropdownItem>
                       <DropdownItem 
-                        onClick={() => {}}
+                        href="#"
                         description="Prepare for technical interviews"
                       >
                         🎯 Mock Interview
                       </DropdownItem>
                       <DropdownItem 
-                        onClick={() => {}}
+                        href="#"
                         description="Aptitude and reasoning questions"
                       >
                         🧮 Aptitude Tests
@@ -169,19 +185,77 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
                 )}
               </div>
               
-              <NavLink onClick={() => navigateTo('codePlayground')}>Code Playground</NavLink>
-              <NavLink onClick={() => {}}>Games</NavLink>
+              <NavLink href="/code-playground">Code Playground</NavLink>
+              
+              {/* Admin Dropdown - Only for admins */}
+              {canAccessAdmin && (
+                <div className="relative" ref={adminDropdownRef}>
+                  <DropdownNavLink 
+                    isOpen={adminDropdownOpen} 
+                    onToggle={() => setAdminDropdownOpen(!adminDropdownOpen)}
+                  >
+                    Admin
+                  </DropdownNavLink>
+                  
+                  {adminDropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                      <div className="py-1">
+                        <DropdownItem 
+                          href="/admin/users"
+                          onClick={handleAdminClick}
+                          description="Manage platform users and permissions"
+                        >
+                          👥 User Management
+                        </DropdownItem>
+                        <DropdownItem 
+                          href="/admin/analytics"
+                          onClick={handleAdminClick}
+                          description="View platform analytics and reports"
+                        >
+                          📊 Analytics
+                        </DropdownItem>
+                        <DropdownItem 
+                          href="/admin/content"
+                          onClick={handleAdminClick}
+                          description="Moderate content and manage platform data"
+                        >
+                          🛡️ Content Moderation
+                        </DropdownItem>
+                        <DropdownItem 
+                          href="/admin/settings"
+                          onClick={handleAdminClick}
+                          description="Configure platform settings"
+                        >
+                          ⚙️ Settings
+                        </DropdownItem>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Recruiter-specific links */}
+              {canPostJobs && user?.role === 'recruiter' && (
+                <NavLink href="/jobs">Jobs</NavLink>
+              )}
+              
+              {/* Mentor-specific links */}
+              {canMentorStudents && user?.role === 'mentor' && (
+                <NavLink href="/mentor">Mentoring</NavLink>
+              )}
+              
+              <NavLink href="#">Games</NavLink>
               <div className="ml-4 flex items-center space-x-3">
                 <ThemeToggleButton />
                 {isAuthenticated ? (
                   <UserProfile />
                 ) : (
-                  <button
-                    onClick={() => navigateTo('auth')}
+                  <Link
+                    href="/auth"
                     className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
                   >
                     Login
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>
@@ -213,33 +287,60 @@ const Header: React.FC<HeaderProps> = ({ navigateTo }) => {
       {isOpen && (
         <div className="md:hidden" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <MobileNavLink onClick={() => handleMobileNavClick('home')}>Home</MobileNavLink>
-            {isAuthenticated && <MobileNavLink onClick={() => handleMobileNavClick('dashboard')}>Dashboard</MobileNavLink>}
+            <MobileNavLink href="/" onClick={handleMobileNavClick}>Home</MobileNavLink>
+            {isAuthenticated && <MobileNavLink href="/dashboard" onClick={handleMobileNavClick}>Dashboard</MobileNavLink>}
             
             {/* Resume Builder Section */}
             <div className="px-3 py-2">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resume Builder</div>
             </div>
             <div className="ml-4 space-y-1">
-              <MobileNavLink onClick={() => handleMobileNavClick('resumeBuilder')}>Basic Resume Builder</MobileNavLink>
-              <MobileNavLink onClick={() => handleMobileNavClick('professionalResume')}>Professional Resume</MobileNavLink>
+              <MobileNavLink href="/resume-builder" onClick={handleMobileNavClick}>Resume Builder</MobileNavLink>
+              {isAuthenticated && (
+                <MobileNavLink href="/my-resumes" onClick={handleMobileNavClick}>My Resumes</MobileNavLink>
+              )}
             </div>
             
-            <MobileNavLink onClick={() => handleMobileNavClick('atsTools')}>ATS Tools</MobileNavLink>
+            <MobileNavLink href="/ats-tools" onClick={handleMobileNavClick}>ATS Tools</MobileNavLink>
             
             {/* Placement Prep Section */}
             <div className="px-3 py-2">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Placement Prep</div>
             </div>
             <div className="ml-4 space-y-1">
-              <MobileNavLink onClick={() => handleMobileNavClick('quiz')}>📝 Quiz</MobileNavLink>
-              <MobileNavLink onClick={() => {}}>💻 Coding Practice</MobileNavLink>
-              <MobileNavLink onClick={() => {}}>🎯 Mock Interview</MobileNavLink>
-              <MobileNavLink onClick={() => {}}>🧮 Aptitude Tests</MobileNavLink>
+              <MobileNavLink href="/quiz" onClick={handleMobileNavClick}>📝 Quiz</MobileNavLink>
+              <MobileNavLink href="#" onClick={handleMobileNavClick}>💻 Coding Practice</MobileNavLink>
+              <MobileNavLink href="#" onClick={handleMobileNavClick}>🎯 Mock Interview</MobileNavLink>
+              <MobileNavLink href="#" onClick={handleMobileNavClick}>🧮 Aptitude Tests</MobileNavLink>
             </div>
             
-            <MobileNavLink onClick={() => handleMobileNavClick('codePlayground')}>Code Playground</MobileNavLink>
-            <MobileNavLink onClick={() => {}}>Games</MobileNavLink>
+            <MobileNavLink href="/code-playground" onClick={handleMobileNavClick}>Code Playground</MobileNavLink>
+            
+            {/* Admin Section - Only for admins */}
+            {canAccessAdmin && (
+              <>
+                <div className="px-3 py-2">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admin</div>
+                </div>
+                <div className="ml-4 space-y-1">
+                  <MobileNavLink href="/admin/users" onClick={handleMobileNavClick}>👥 User Management</MobileNavLink>
+                  <MobileNavLink href="/admin/analytics" onClick={handleMobileNavClick}>📊 Analytics</MobileNavLink>
+                  <MobileNavLink href="/admin/content" onClick={handleMobileNavClick}>🛡️ Content Moderation</MobileNavLink>
+                  <MobileNavLink href="/admin/settings" onClick={handleMobileNavClick}>⚙️ Settings</MobileNavLink>
+                </div>
+              </>
+            )}
+            
+            {/* Role-specific links */}
+            {canPostJobs && user?.role === 'recruiter' && (
+              <MobileNavLink href="/jobs" onClick={handleMobileNavClick}>Jobs</MobileNavLink>
+            )}
+            
+            {canMentorStudents && user?.role === 'mentor' && (
+              <MobileNavLink href="/mentor" onClick={handleMobileNavClick}>Mentoring</MobileNavLink>
+            )}
+            
+            <MobileNavLink href="#" onClick={handleMobileNavClick}>Games</MobileNavLink>
           </div>
         </div>
       )}

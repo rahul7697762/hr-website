@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import RoleBadge from '../ui/RoleBadge';
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
@@ -7,14 +8,7 @@ const UserProfile: React.FC = () => {
 
   if (!user) return null;
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'mentor': return 'bg-green-100 text-green-800';
-      case 'recruiter': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-blue-100 text-blue-800';
-    }
-  };
+
 
   return (
     <div className="relative">
@@ -41,9 +35,7 @@ const UserProfile: React.FC = () => {
               </div>
             </div>
             <div className="mt-2">
-              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-              </span>
+              <RoleBadge role={user.role} size="sm" />
             </div>
           </div>
           
@@ -66,6 +58,12 @@ const UserProfile: React.FC = () => {
             >
               Settings
             </button>
+            <a
+              href="/dashboard"
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Dashboard
+            </a>
             <hr className="my-1" />
             <button
               onClick={() => {

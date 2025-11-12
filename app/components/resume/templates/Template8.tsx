@@ -10,7 +10,7 @@ const Template8: React.FC<TemplateProps> = ({ data, color }) => {
   const { contact, objective, education, skills, languages, experience, references } = data;
 
   return (
-    <div className="w-[850px] mx-auto bg-white text-gray-900 font-sans border border-gray-200 shadow-md print:shadow-none print:border-0">
+    <div className="w-[850px] mx-auto bg-white text-gray-900 font-sans">
       {/* ===== HEADER ===== */}
       <header
         className="flex items-center gap-5 p-6 border-b"
