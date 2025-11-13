@@ -31,9 +31,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!resumeId) {
+      return NextResponse.json(
+        { error: 'Resume ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Create ATS result record
     const atsRecord = {
-      resume_id: resumeId ? parseInt(resumeId) : null,
+      resume_id: parseInt(resumeId),
       job_description: jobDescription || '',
       matching_keywords: matchingKeywords || [],
       missing_keywords: missingKeywords || [],

@@ -5,7 +5,7 @@ import { ResumeService } from '../../services/resumeService';
 import { ResumeData } from '../../types/resume';
 import { HuggingFaceService, HuggingFaceATSAnalysis } from '../../services/huggingFaceService';
 import { SupabaseATSService, SupabaseATSAnalysis } from '../../services/supabaseATSService';
-import ATSDebugPanel from './ATSDebugPanel';
+
 
 interface ATSResult {
   ats_id: number;
@@ -97,18 +97,24 @@ const ATSAnalyzer: React.FC = () => {
   const loadATSStats = async () => {
     try {
       if (user?.user_id) {
+        console.log('Loading ATS stats for user:', user.user_id);
         const response = await ATSResultService.listATSResults(undefined, user.user_id);
-        const results = response.atsResults;
+        console.log('ATS results response:', response);
         
-        if (results.length > 0) {
+        const results = response.atsResults;
+
+        if (results && results.length > 0) {
           const scores = results.map(r => r.overall_score);
-          setAtsStats({
+          const stats = {
             total_analyses: results.length,
             average_score: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
             highest_score: Math.max(...scores),
             lowest_score: Math.min(...scores)
-          });
+          };
+          console.log('Setting ATS stats:', stats);
+          setAtsStats(stats);
         } else {
+          console.log('No ATS results found, setting empty stats');
           setAtsStats({
             total_analyses: 0,
             average_score: 0,
@@ -119,6 +125,7 @@ const ATSAnalyzer: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading ATS stats:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
       setAtsStats({
         total_analyses: 0,
         average_score: 0,
@@ -485,11 +492,39 @@ const ATSAnalyzer: React.FC = () => {
             references: [],
           };
 
-          // Skip the resume saving step for now to avoid foreign key constraint issues
-          console.log('Saving ATS result without creating a resume...');
+          // Create a temporary resume first to satisfy foreign key constraint
+          console.log('Creating temporary resume for ATS analysis...');
+          
+          const resumePayload = {
+            resumeData: tempResumeData,
+            templateId: 1,
+            colorScheme: 'blue',
+            userId: user.user_id,
+            title: `ATS Analysis - ${new Date().toLocaleDateString()}`
+          };
 
-          await ATSResultService.saveATSResult({
-            resumeId: null, // No resume ID since we're not creating a resume
+          const resumeResponse = await fetch('/api/resumes/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resumePayload)
+          });
+
+          if (!resumeResponse.ok) {
+            throw new Error('Failed to create temporary resume');
+          }
+
+          const resumeResult = await resumeResponse.json();
+          
+          if (!resumeResult.success) {
+            throw new Error(resumeResult.error || 'Failed to create resume');
+          }
+          
+          const resumeId = resumeResult.resume.resume_id;
+
+          console.log('Saving ATS result with resume ID:', resumeId);
+
+          const atsResultData = {
+            resumeId: resumeId,
             jobDescription,
             matchingKeywords: result.matching_keywords,
             missingKeywords: result.missing_keywords,
@@ -497,11 +532,16 @@ const ATSAnalyzer: React.FC = () => {
             suggestions: result.suggestions,
             analysisData: result.analysis_data,
             userId: user.user_id
-          });
-          console.log('ATS result saved successfully');
+          };
+          console.log('ATS result data to save:', atsResultData);
+
+          const savedResult = await ATSResultService.saveATSResult(atsResultData);
+          console.log('ATS result saved successfully:', savedResult);
           
-          // Reload stats to reflect the new analysis
-          loadATSStats();
+          // Reload stats to reflect the new analysis (with small delay to ensure DB is updated)
+          setTimeout(() => {
+            loadATSStats();
+          }, 500);
           
           setProcessingMessage('✅ Analysis completed and saved to your history!');
         } catch (saveError) {
@@ -855,44 +895,12 @@ ${analysis.detailed_feedback}`;
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">ResumeATS AI Analyzer</h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Optimize your resume with specialized ResumeATS model powered by Supabase and Hugging Face
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Analyze your resume with AI and get a detailed report.
           </p>
-          <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-            🤖 ResumeATS Model (girishwangikar/ResumeATS) • 🗄️ Supabase Storage • 💾 Auto-saved History
-          </div>
-          <div className="mt-2">
-            <button
-              onClick={testAPIConnection}
-              disabled={testingAPI}
-              className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {testingAPI ? '🔄 Testing...' : '🔧 Test API Connection'}
-            </button>
-          </div>
         </div>
 
-        {/* Stats Overview */}
-        {atsStats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{atsStats.total_analyses}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Total Analyses</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{atsStats.average_score}%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Average Score</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{atsStats.highest_score}%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Highest Score</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{atsStats.lowest_score}%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">Lowest Score</div>
-            </div>
-          </div>
-        )}
+
 
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mb-8">
@@ -1339,5 +1347,3 @@ ${analysis.detailed_feedback}`;
 
 
 export default ATSAnalyzer;
-
-// Note: ATSDebugPanel is imported but used conditionally in development mode

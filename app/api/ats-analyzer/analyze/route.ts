@@ -14,38 +14,51 @@ export async function POST(request: NextRequest) {
 
     // Try AI analysis first
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || 'AIzaSyB6w-ILP91AcRvWOZ18_G2l_xmPkYfDP-g';
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || 'AIzaSyCq0PKLdwdR7E-2BWDmBjCV_Svfb2yZKhI';
       
       if (apiKey && apiKey !== 'your-api-key-here') {
         console.log('Using API key:', apiKey.substring(0, 10) + '...');
         
         const genAI = new GoogleGenerativeAI(apiKey);
-        const models = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+        const models = ['gemini-2.5-flash', 'gemini-1.5-pro-latest', 'gemini-pro'];
         
         for (const modelName of models) {
           try {
             console.log('Trying model:', modelName);
             const model = genAI.getGenerativeModel({ model: modelName });
 
-            const prompt = `You are an ATS analyzer. Analyze this resume against the job description and provide a JSON response with:
-- overall_score (0-100)
-- matching_keywords (array)
-- missing_keywords (array) 
-- suggestions (string)
+            const prompt = `You are an ATS analyzer. Analyze this resume against the job description.
 
 RESUME: ${resumeText.substring(0, 2000)}
 JOB: ${jobDescription.substring(0, 2000)}
 
-Respond with valid JSON only.`;
+Return ONLY a valid JSON object in this exact format:
+{
+  "overall_score": 75,
+  "matching_keywords": ["keyword1", "keyword2"],
+  "missing_keywords": ["missing1", "missing2"],
+  "suggestions": "Brief improvement suggestions"
+}
+
+No additional text, explanations, or markdown formatting. Just the JSON object.`;
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
             
             if (text) {
-              console.log('AI response received');
+              console.log('AI response received:', text.substring(0, 200) + '...');
               try {
-                const analysisResult = JSON.parse(text);
+                // Clean the response - remove any markdown formatting or extra text
+                let cleanText = text.trim();
+                if (cleanText.startsWith('```json')) {
+                  cleanText = cleanText.replace(/```json\n?/, '').replace(/\n?```$/, '');
+                }
+                if (cleanText.startsWith('```')) {
+                  cleanText = cleanText.replace(/```\n?/, '').replace(/\n?```$/, '');
+                }
+                
+                const analysisResult = JSON.parse(cleanText);
                 return NextResponse.json({
                   success: true,
                   atsResult: {
@@ -60,7 +73,9 @@ Respond with valid JSON only.`;
                   saveToDatabase: true // Flag to indicate this should be saved
                 });
               } catch (parseError) {
-                console.log('JSON parse failed, using fallback');
+                console.log('JSON parse failed:', parseError);
+                console.log('Raw AI response:', text);
+                console.log('Using fallback keyword analysis');
                 break;
               }
             }

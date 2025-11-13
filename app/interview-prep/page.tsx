@@ -60,6 +60,15 @@ export default function InterviewPrep() {
       color: 'from-teal-500 to-green-600',
       bgColor: 'bg-teal-50 dark:bg-teal-900/20',
       href: '/interview-prep/salary'
+    },
+    {
+      id: 'voice-screening',
+      title: 'Voice Interview Screening',
+      description: 'Practice real-time voice interviews with AI-powered feedback',
+      icon: '🎤',
+      color: 'from-red-500 to-pink-600',
+      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      href: '/interview-prep/voice-screening'
     }
   ];
 
@@ -105,6 +114,35 @@ export default function InterviewPrep() {
                   </div>
                 </Link>
               ))}
+            </div>
+
+            {/* Quick Access to Interview Components */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-12 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                🎯 Quick Start Interview Practice
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Link
+                  href="/interview-prep/questions"
+                  className="flex items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                >
+                  <span className="text-2xl mr-3">❓</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Practice Questions</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Browse and practice common interview questions</p>
+                  </div>
+                </Link>
+                <Link
+                  href="/interview-prep/mock"
+                  className="flex items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                >
+                  <span className="text-2xl mr-3">🎤</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Mock Interview</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Take a full mock interview with AI feedback</p>
+                  </div>
+                </Link>
+              </div>
             </div>
 
             {/* Tips Section */}

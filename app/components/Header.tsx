@@ -169,10 +169,18 @@ const Header: React.FC = () => {
                         💻 Coding Practice
                       </DropdownItem>
                       <DropdownItem 
-                        href="#"
-                        description="Prepare for technical interviews"
+                        href="/interview-prep/mock"
+                        onClick={handlePlacementPrepClick}
+                        description="AI-powered mock interviews with real-time feedback"
                       >
                         🎯 Mock Interview
+                      </DropdownItem>
+                      <DropdownItem 
+                        href="/interview-demo"
+                        onClick={handlePlacementPrepClick}
+                        description="Test the interview system with voice AI"
+                      >
+                        🎤 Interview Demo
                       </DropdownItem>
                       <DropdownItem 
                         href="#"

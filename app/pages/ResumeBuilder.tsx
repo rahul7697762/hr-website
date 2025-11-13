@@ -312,64 +312,7 @@ const ResumeBuilder: React.FC<ResumeBuilderProps> = ({
               </button>
               
               {/* Debug Test Buttons - Remove in production */}
-              <div className="flex gap-1">
-                <button 
-                  className="px-2 py-1 bg-gray-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-gray-600"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/resumes/test');
-                      const result = await response.json();
-                      console.log('Database test result:', result);
-                      alert(`DB Test: ${result.success ? 'OK' : 'Failed'}\nResumes: ${result.totalResumes}\nCheck console for details`);
-                    } catch (error) {
-                      console.error('Test failed:', error);
-                      alert('Test failed - check console');
-                    }
-                  }}
-                >
-                  🔧 Test
-                </button>
-                <button 
-                  className="px-2 py-1 bg-green-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-green-600"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/resumes/debug', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'create-test-resume' })
-                      });
-                      const result = await response.json();
-                      console.log('Create test result:', result);
-                      alert(`Create Test: ${result.success ? 'OK' : 'Failed'}\n${result.message}`);
-                    } catch (error) {
-                      console.error('Create test failed:', error);
-                      alert('Create test failed - check console');
-                    }
-                  }}
-                >
-                  ➕ Create Test
-                </button>
-                <button 
-                  className="px-2 py-1 bg-blue-500 text-white border-none rounded text-xs font-medium cursor-pointer transition-all duration-300 shadow-sm hover:bg-blue-600"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/resumes/debug', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'list-resumes' })
-                      });
-                      const result = await response.json();
-                      console.log('List resumes result:', result);
-                      alert(`List: ${result.success ? 'OK' : 'Failed'}\nFound: ${result.count} resumes`);
-                    } catch (error) {
-                      console.error('List failed:', error);
-                      alert('List failed - check console');
-                    }
-                  }}
-                >
-                  📋 List
-                </button>
-              </div>
+              
               <button 
                 className={`px-5 py-2.5 text-white border-none rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 ${
                   showAISuggestions 

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ResumeBuilder from '../pages/ResumeBuilder';
 import TemplateSelection from '../pages/TemplateSelection';
@@ -8,7 +8,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { ResumeService } from '../services/resumeService';
 
-export default function ResumeBuilderPage() {
+function ResumeBuilderContent() {
   const [selectedTemplate, setSelectedTemplate] = useState<number>(0);
   const [showTemplateSelection, setShowTemplateSelection] = useState<boolean>(true);
   const [loadingResume, setLoadingResume] = useState<boolean>(false);
@@ -63,22 +63,41 @@ export default function ResumeBuilderPage() {
   }
 
   return (
+    <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-gray-100 font-sans">
+      <Header />
+      <main>
+        {showTemplateSelection ? (
+          <TemplateSelection onTemplateSelect={handleTemplateSelect} />
+        ) : (
+          <ResumeBuilder 
+            selectedTemplate={selectedTemplate} 
+            onBackToTemplates={() => setShowTemplateSelection(true)}
+            resumeId={resumeId ? parseInt(resumeId) : undefined}
+          />
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+export default function ResumeBuilderPage() {
+  return (
     <ProtectedRoute>
-      <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-gray-100 font-sans">
-        <Header />
-        <main>
-          {showTemplateSelection ? (
-            <TemplateSelection onTemplateSelect={handleTemplateSelect} />
-          ) : (
-            <ResumeBuilder 
-              selectedTemplate={selectedTemplate} 
-              onBackToTemplates={() => setShowTemplateSelection(true)}
-              resumeId={resumeId ? parseInt(resumeId) : undefined}
-            />
-          )}
-        </main>
-        <Footer />
-      </div>
+      <Suspense fallback={
+        <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-gray-100 font-sans">
+          <Header />
+          <main className="min-h-screen flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-gray-600 dark:text-gray-300">Loading...</span>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      }>
+        <ResumeBuilderContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }
