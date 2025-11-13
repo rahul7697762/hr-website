@@ -14,10 +14,11 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+
     steps:
       - uses: actions/checkout@v3
 
-      # Install correct Node version
+      # Use Node 22 (required for Next.js & Supabase)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -26,16 +27,13 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: npm install
-        working-directory: .
 
-      # Build Next.js app
-      - name: Build
+      # Build Next.js application
+      - name: Build Next.js
         run: npm run build
-        working-directory: .
 
-      # Deploy using Azure SWA
-      - name: Build And Deploy
-        id: builddeploy
+      # Deploy prebuilt Next.js (skip Oryx)
+      - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_POLITE_COAST_090409800 }}
@@ -45,19 +43,17 @@ jobs:
           app_location: "/"
           output_location: ".next"
 
-          # Force custom build (disable Oryx auto-build)
-          app_build_command: "npm run build"
-          skip_app_build: false
+          # Disable Oryx completely (avoid Node 18 issue)
+          skip_app_build: true
           skip_api_build: true
 
+  # Close PR preview environments
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
     steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
+      - uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_POLITE_COAST_090409800 }}
           action: "close"
