@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Install correct Node version (Next.js 16 + Supabase require >=20)
+      # Install correct Node version
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -28,12 +28,12 @@ jobs:
         run: npm install
         working-directory: .
 
-      # Build the Next.js app
+      # Build Next.js app
       - name: Build
         run: npm run build
         working-directory: .
 
-      # Deploy with Azure Static Web Apps
+      # Deploy using Azure SWA
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -42,9 +42,13 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # Correct paths for Next.js
           app_location: "/"
           output_location: ".next"
+
+          # Force custom build (disable Oryx auto-build)
+          app_build_command: "npm run build"
+          skip_app_build: false
+          skip_api_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
