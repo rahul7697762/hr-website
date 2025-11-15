@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
 
-const execAsync = promisify(exec);
+// Judge0 API configuration
+const JUDGE0_API_URL = 'https://judge0-ce.p.rapidapi.com';
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || ''; // Add your RapidAPI key in .env.local
+
+// Language ID mapping for Judge0
+const LANGUAGE_IDS: Record<string, number> = {
+  javascript: 63, // Node.js
+  python: 71,     // Python 3
+  c_cpp: 54,      // C++ (GCC 9.2.0)
+  java: 62,       // Java (OpenJDK 13.0.1)
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { code, language } = await request.json();
+    const { code, language, customInput } = await request.json();
 
     if (!code || !language) {
       return NextResponse.json(
@@ -18,38 +23,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a temporary directory for code execution
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-exec-'));
-    
     let output = '';
     let error = '';
 
     try {
-      switch (language) {
-        case 'javascript':
+      // Use Judge0 API for all languages
+      if (RAPIDAPI_KEY) {
+        const result = await executeWithJudge0(code, language, customInput || '');
+        output = result.output;
+        error = result.error;
+      } else {
+        // Fallback to local JavaScript execution only
+        if (language === 'javascript') {
           output = await executeJavaScript(code);
-          break;
-        case 'python':
-          output = await executePython(code, tempDir);
-          break;
-        case 'c_cpp':
-          output = await executeCpp(code, tempDir);
-          break;
-        case 'java':
-          output = await executeJava(code, tempDir);
-          break;
-        default:
-          error = `Language ${language} is not supported yet`;
+        } else {
+          error = 'Code execution API not configured. Please add RAPIDAPI_KEY to environment variables.';
+        }
       }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
-    } finally {
-      // Cleanup temp directory
-      try {
-        await fs.rm(tempDir, { recursive: true, force: true });
-      } catch (cleanupErr) {
-        console.error('Cleanup error:', cleanupErr);
-      }
     }
 
     return NextResponse.json({
@@ -65,7 +57,63 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// JavaScript execution (using Node.js)
+// Execute code using Judge0 API
+async function executeWithJudge0(
+  code: string,
+  language: string,
+  stdin: string
+): Promise<{ output: string; error: string }> {
+  const languageId = LANGUAGE_IDS[language];
+  
+  if (!languageId) {
+    return { output: '', error: `Language ${language} is not supported` };
+  }
+
+  try {
+    // Submit code for execution
+    const submitResponse = await fetch(`${JUDGE0_API_URL}/submissions?base64_encoded=false&wait=true`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
+      },
+      body: JSON.stringify({
+        source_code: code,
+        language_id: languageId,
+        stdin: stdin || '',
+      }),
+    });
+
+    if (!submitResponse.ok) {
+      throw new Error(`Judge0 API error: ${submitResponse.statusText}`);
+    }
+
+    const result = await submitResponse.json();
+
+    // Check for compilation or runtime errors
+    if (result.status.id === 6) {
+      // Compilation Error
+      return { output: '', error: result.compile_output || 'Compilation error' };
+    } else if (result.status.id === 11 || result.status.id === 12 || result.status.id === 13) {
+      // Runtime Error, Time Limit Exceeded, or other errors
+      return { output: '', error: result.stderr || result.status.description };
+    }
+
+    // Success
+    const output = result.stdout || 'Code executed successfully (no output)';
+    const error = result.stderr || '';
+
+    return { output, error };
+  } catch (err) {
+    return { 
+      output: '', 
+      error: `Execution Error: ${err instanceof Error ? err.message : String(err)}` 
+    };
+  }
+}
+
+// JavaScript execution (using Node.js) - Fallback for local development
 async function executeJavaScript(code: string): Promise<string> {
   try {
     // Capture console.log output
@@ -89,94 +137,4 @@ async function executeJavaScript(code: string): Promise<string> {
   }
 }
 
-// Python execution
-async function executePython(code: string, tempDir: string): Promise<string> {
-  const filePath = path.join(tempDir, 'script.py');
-  await fs.writeFile(filePath, code);
 
-  try {
-    const { stdout, stderr } = await execAsync(`python "${filePath}"`, {
-      timeout: 5000, // 5 second timeout
-      maxBuffer: 1024 * 1024, // 1MB buffer
-    });
-    
-    if (stderr) {
-      throw new Error(stderr);
-    }
-    
-    return stdout || 'Code executed successfully (no output)';
-  } catch (err: any) {
-    if (err.code === 'ENOENT') {
-      throw new Error('Python is not installed. Please install Python to run Python code.');
-    }
-    throw new Error(`Python Error: ${err.message}`);
-  }
-}
-
-// C++ execution
-async function executeCpp(code: string, tempDir: string): Promise<string> {
-  const sourceFile = path.join(tempDir, 'program.cpp');
-  const outputFile = path.join(tempDir, 'program.exe');
-  
-  await fs.writeFile(sourceFile, code);
-
-  try {
-    // Compile
-    await execAsync(`g++ "${sourceFile}" -o "${outputFile}"`, {
-      timeout: 10000,
-    });
-
-    // Execute
-    const { stdout, stderr } = await execAsync(`"${outputFile}"`, {
-      timeout: 5000,
-      maxBuffer: 1024 * 1024,
-    });
-
-    if (stderr) {
-      throw new Error(stderr);
-    }
-
-    return stdout || 'Code executed successfully (no output)';
-  } catch (err: any) {
-    if (err.code === 'ENOENT') {
-      throw new Error('g++ (GCC) is not installed. Please install MinGW or GCC to compile C++ code.');
-    }
-    throw new Error(`C++ Error: ${err.message}`);
-  }
-}
-
-// Java execution
-async function executeJava(code: string, tempDir: string): Promise<string> {
-  // Extract class name from code
-  const classNameMatch = code.match(/public\s+class\s+(\w+)/);
-  const className = classNameMatch ? classNameMatch[1] : 'Main';
-  
-  const sourceFile = path.join(tempDir, `${className}.java`);
-  await fs.writeFile(sourceFile, code);
-
-  try {
-    // Compile
-    await execAsync(`javac "${sourceFile}"`, {
-      timeout: 10000,
-      cwd: tempDir,
-    });
-
-    // Execute
-    const { stdout, stderr } = await execAsync(`java ${className}`, {
-      timeout: 5000,
-      maxBuffer: 1024 * 1024,
-      cwd: tempDir,
-    });
-
-    if (stderr) {
-      throw new Error(stderr);
-    }
-
-    return stdout || 'Code executed successfully (no output)';
-  } catch (err: any) {
-    if (err.code === 'ENOENT') {
-      throw new Error('Java is not installed. Please install JDK to run Java code.');
-    }
-    throw new Error(`Java Error: ${err.message}`);
-  }
-}

@@ -69,30 +69,28 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, [theme]);
 
   return (
-    <div className="rounded-2xl shadow-lg border border-gray-700 overflow-hidden">
-                  <AceEditor
-                mode={language}
-                theme={theme}
-                name="dynamic-ace-editor"
-                width="100%"
-                height="500px"
-                fontSize={14}
-                showPrintMargin={false}
-                showGutter={true}
-                highlightActiveLine={true}
-                value={value}
-                onChange={onChange}
-                // ✅ Correct props for autocomplete & snippets
-                enableBasicAutocompletion={true}
-                enableLiveAutocompletion={true}
-                enableSnippets={true}
-                setOptions={{
-                showLineNumbers: true,
-                tabSize: 2,
-                useWorker: false,
-                }}
-                />
-
+    <div className="h-full w-full">
+      <AceEditor
+        mode={language}
+        theme={theme}
+        name="dynamic-ace-editor"
+        width="100%"
+        height="100%"
+        fontSize={14}
+        showPrintMargin={false}
+        showGutter={true}
+        highlightActiveLine={true}
+        value={value}
+        onChange={onChange}
+        enableBasicAutocompletion={true}
+        enableLiveAutocompletion={true}
+        enableSnippets={true}
+        setOptions={{
+          showLineNumbers: true,
+          tabSize: 2,
+          useWorker: false,
+        }}
+      />
     </div>
   );
 };
