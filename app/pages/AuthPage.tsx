@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import LoginForm from '../components/auth/LoginForm';
-import RegisterForm from '../components/auth/RegisterForm';
-import { useAuth } from '../contexts/AuthContext';
+"use client";
 
-const AuthPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const { isAuthenticated, loading } = useAuth();
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import LoginForm from "@/components/auth/LoginForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { getRedirectPath } from "@/utils/redirectHelpers";
+
+export default function AuthPage() {
+  const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
 
-  // Redirect if already authenticated
+  // Redirect if already logged in based on role
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      router.push('/dashboard');
+    if (!loading && isAuthenticated && user) {
+      const redirectPath = getRedirectPath(user.role);
+      router.push(redirectPath);
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, user, router]);
 
-  // Show loading while checking auth
+  // While checking auth state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -25,10 +27,8 @@ const AuthPage: React.FC = () => {
     );
   }
 
-  // Don't render if authenticated (will redirect)
-  if (isAuthenticated) {
-    return null;
-  }
+  // Do not render if authenticated (redirecting)
+  if (isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -42,22 +42,11 @@ const AuthPage: React.FC = () => {
           </p>
         </div>
 
-        {isLogin ? (
-          <LoginForm
-            onSuccess={() => router.push('/dashboard')}
-            onSwitchToRegister={() => setIsLogin(false)}
-          />
-        ) : (
-          <RegisterForm
-            onSuccess={() => router.push('/dashboard')}
-            onSwitchToLogin={() => setIsLogin(true)}
-          />
-        )}
-
-
+        <LoginForm onSuccess={(userRole) => {
+          const redirectPath = getRedirectPath(userRole);
+          router.push(redirectPath);
+        }} />
       </div>
     </div>
   );
-};
-
-export default AuthPage;
+}

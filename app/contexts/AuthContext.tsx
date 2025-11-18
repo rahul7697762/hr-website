@@ -15,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: UserRole) => Promise<void>;
   register: (name: string, email: string, password: string, role?: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -28,7 +28,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
 
   // Helper function to save user to localStorage
   const saveUserToStorage = (userData: User) => {
@@ -218,23 +217,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: UserRole) => {
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Login error:', error);
+        
         // Provide helpful error messages
         if (error.message.includes('Email not confirmed')) {
           throw new Error('Please check your email and click the confirmation link. Or disable email confirmation in Supabase Dashboard → Authentication → Providers → Email');
         }
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password');
+          throw new Error('Invalid email or password. Please check:\n1. Email is correct\n2. Password is correct\n3. User exists in Supabase Dashboard → Authentication → Users\n4. Email confirmation is disabled for development');
         }
-        throw error;
+        if (error.message.includes('Email link is invalid or has expired')) {
+          throw new Error('Email confirmation link expired. Please request a new one.');
+        }
+        throw new Error(error.message);
       }
+      
+      console.log('Login successful for:', email);
 
       if (data.session) {
         setToken(data.session.access_token);
@@ -253,7 +261,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             user_id: 0,
             name: data.user?.user_metadata?.name || email.split('@')[0],
             email: email,
-            role: data.user?.user_metadata?.role || 'student',
+            role: role || data.user?.user_metadata?.role || 'student',
             created_at: new Date().toISOString(),
           };
           setUser(basicUser);
@@ -262,8 +270,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         
         if (userData) {
-          setUser(userData);
-          saveUserToStorage(userData);
+          // If role is provided and different from stored role, update it
+          if (role && role !== userData.role) {
+            const { data: updatedUser, error: updateError } = await supabase
+              .from('users')
+              .update({ role })
+              .eq('email', email)
+              .select()
+              .single();
+            
+            if (!updateError && updatedUser) {
+              setUser(updatedUser);
+              saveUserToStorage(updatedUser);
+            } else {
+              // If update fails, use the role from database
+              setUser(userData);
+              saveUserToStorage(userData);
+            }
+          } else {
+            setUser(userData);
+            saveUserToStorage(userData);
+          }
         }
       }
     } catch (error: any) {
@@ -274,7 +301,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (name: string, email: string, password: string, role: string = 'student') => {
     try {
-      // Sign up with Supabase Auth with email confirmation disabled for development
+      // Sign up with Supabase Auth - it handles password hashing securely
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -296,7 +323,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (authData.user) {
-        // Create user profile in users table
+        // Create user profile in users table WITHOUT password
+        // Supabase Auth handles password storage securely
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([
@@ -304,7 +332,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               email,
               name,
               role,
-              password_hash: 'managed_by_supabase_auth',
+              // DO NOT store password or password_hash here!
+              // Supabase Auth manages passwords securely
             }
           ])
           .select()

@@ -156,13 +156,6 @@ const Header: React.FC = () => {
                         🎯 Interview Prep
                       </DropdownItem>
                       <DropdownItem 
-                        href="/quiz"
-                        onClick={handlePlacementPrepClick}
-                        description="Test your knowledge with interactive quizzes"
-                      >
-                        📝 Quiz
-                      </DropdownItem>
-                      <DropdownItem 
                         href="#"
                         description="Practice coding problems and algorithms"
                       >
@@ -194,6 +187,16 @@ const Header: React.FC = () => {
               </div>
               
               <NavLink href="/code-playground">Code Playground</NavLink>
+              
+              {/* Quiz Link - For students */}
+              {isAuthenticated && user?.role === 'student' && (
+                <NavLink href="/quiz">📚 My Quizzes</NavLink>
+              )}
+              
+              {/* Quiz Admin - For admins */}
+              {canAccessAdmin && (
+                <NavLink href="/quiz/admin">🎯 Quiz Admin</NavLink>
+              )}
               
               {/* Admin Dropdown - Only for admins */}
               {canAccessAdmin && (
@@ -316,13 +319,22 @@ const Header: React.FC = () => {
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Placement Prep</div>
             </div>
             <div className="ml-4 space-y-1">
-              <MobileNavLink href="/quiz" onClick={handleMobileNavClick}>📝 Quiz</MobileNavLink>
               <MobileNavLink href="#" onClick={handleMobileNavClick}>💻 Coding Practice</MobileNavLink>
               <MobileNavLink href="#" onClick={handleMobileNavClick}>🎯 Mock Interview</MobileNavLink>
               <MobileNavLink href="#" onClick={handleMobileNavClick}>🧮 Aptitude Tests</MobileNavLink>
             </div>
             
             <MobileNavLink href="/code-playground" onClick={handleMobileNavClick}>Code Playground</MobileNavLink>
+            
+            {/* Quiz Link - For students */}
+            {isAuthenticated && user?.role === 'student' && (
+              <MobileNavLink href="/quiz" onClick={handleMobileNavClick}>📚 My Quizzes</MobileNavLink>
+            )}
+            
+            {/* Quiz Admin - For admins */}
+            {canAccessAdmin && (
+              <MobileNavLink href="/quiz/admin" onClick={handleMobileNavClick}>🎯 Quiz Admin</MobileNavLink>
+            )}
             
             {/* Admin Section - Only for admins */}
             {canAccessAdmin && (

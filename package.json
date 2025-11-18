@@ -5,8 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export": "next export",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:types": "npx supabase gen types typescript --local > app/types/database.types.ts",
+    "supabase:migration": "npx supabase migration new",
+    "env:local": "node scripts/setup-local-env.js local",
+    "env:production": "node scripts/setup-local-env.js production"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -21,6 +30,7 @@
     "jspdf": "^3.0.3",
     "mammoth": "^1.11.0",
     "next": "16.0.1",
+    "openai": "^6.9.1",
     "pdfjs-dist": "^5.4.394",
     "react": "19.2.0",
     "react-ace": "^14.0.1",

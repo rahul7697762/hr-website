@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import RoleSelector, { UserRole } from '../../components/ui/RoleSelector';
 
 interface LoginFormProps {
-  onSuccess?: () => void;
-  onSwitchToRegister?: () => void;
+  onSuccess?: (userRole: UserRole) => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -20,8 +21,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
     setLoading(true);
 
     try {
-      await login(email, password);
-      onSuccess?.();
+      await login(email, password, role);
+      onSuccess?.(role);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -70,6 +71,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
           />
         </div>
 
+        <RoleSelector
+          value={role}
+          onChange={setRole}
+          label="Login as"
+          showDescriptions={false}
+        />
+
         <button
           type="submit"
           disabled={loading}
@@ -87,18 +95,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
           <p><strong>Admin:</strong> admin@example.com / password</p>
         </div>
       </div>
-
-      {onSwitchToRegister && (
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <button
-            onClick={onSwitchToRegister}
-            className="text-blue-600 hover:text-blue-500 font-medium"
-          >
-            Sign Up
-          </button>
-        </p>
-      )}
     </div>
   );
 };
