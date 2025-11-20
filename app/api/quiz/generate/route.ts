@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase';
 
-// Initialize AI clients
+// Init AI
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || '');
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
@@ -11,179 +11,249 @@ const openai = new OpenAI({
 
 type AIProvider = 'openai' | 'gemini' | 'auto';
 
-/**
- * Generate quiz content using AI (tries OpenAI first, falls back to Gemini)
- */
-async function generateQuizWithAI(
-  topic: string,
-  numQuestions: number,
-  difficulty: string,
-  provider: AIProvider = 'auto'
-): Promise<any> {
-  const prompt = `Generate a quiz about "${topic}" with the following specifications:
-- Difficulty: ${difficulty}
-- Number of questions: ${numQuestions}
-- Each question should have 4 multiple choice options
-- Mark the correct answer
+/* -------------------------------------------------------------------------
+    COMPANY QUESTION BLUEPRINTS (expand anytime)
+------------------------------------------------------------------------- */
+const COMPANY_TEMPLATES: Record<string, string> = {
+  GOOGLE: `
+Ask questions similar to Google interview style:
+- Emphasize DSA (Trees, DP, Graphs)
+- Algorithmic reasoning
+- Big O complexity analysis
+  `,
 
-Please respond in the following JSON format:
+  AMAZON: `
+Follow Amazon interview style:
+- Amazon Leadership Principles
+- Behavioural STAR format questions 
+- Basic DSA (arrays, strings, greedy)
+  `,
+
+  MICROSOFT: `
+Microsoft style:
+- System design fundamentals 
+- OOPS and architecture patterns 
+- Practical coding (hashmap, recursion)
+  `,
+
+  META: `
+Meta interview approach:
+- Product sense thinking
+- Debugging based coding
+- Practical real-world problems
+  `,
+
+  TCS: `
+TCS style:
+- Aptitude (Quant, Verbal)
+- Basic programming MCQs
+- SQL and DBMS theory
+  `,
+};
+
+/* -------------------------------------------------------------------------
+    Generate Prompt Dynamically (Company + Topic + Custom)
+------------------------------------------------------------------------- */
+function buildFinalPrompt(
+  topic: string,
+  companies: string[],
+  customPrompt: string,
+  numQuestions: number,
+  difficulty: string
+): string {
+
+  let sections: string[] = [];
+
+  // Topic Section
+  if (topic.trim()) {
+    sections.push(`Topic Focus: ${topic}`);
+  }
+
+  // Company Style Section
+  if (companies.length > 0) {
+    const mergedCompanies = companies.map(c => COMPANY_TEMPLATES[c] || '').join('\n');
+    sections.push(`
+Generate questions matching the interview style of the following companies:
+${companies.join(', ')}
+
+Use these guidelines:
+${mergedCompanies}
+`);
+  }
+
+  // Custom Prompt Section
+  if (customPrompt.trim()) {
+    sections.push(`
+Custom Instructor Prompt:
+${customPrompt}
+`);
+  }
+
+  // Final rules for JSON output
+  sections.push(`
+Generate a quiz with the following settings:
+- Number of questions: ${numQuestions}
+- Difficulty: ${difficulty}
+- Every question MUST have exactly 4 MCQs.
+- Include "correct_answer" which is ONE of the choices.
+- Format: VALID JSON ONLY.
+
+JSON FORMAT STRICTLY:
 {
-  "title": "Quiz title (concise and descriptive)",
-  "description": "Brief description (1-2 sentences)",
+  "title": "Quiz Title",
+  "description": "Short 1-2 line summary",
   "questions": [
     {
-      "question": "Question text",
-      "choices": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_answer": "The exact correct option text",
+      "question": "text",
+      "choices": ["A","B","C","D"],
+      "correct_answer": "The correct choice",
       "difficulty": "${difficulty}"
     }
   ]
 }
+`);
 
-Make sure the response is valid JSON only, no additional text.`;
+  return sections.join('\n\n');
+}
 
+/* -------------------------------------------------------------------------
+    AI GENERATION ENGINE
+------------------------------------------------------------------------- */
+async function generateQuizWithAI(
+  finalPrompt: string,
+  provider: AIProvider = 'auto'
+) {
   let text = '';
   let usedProvider = '';
 
-  // Try OpenAI first (if auto or explicitly requested)
-  if ((provider === 'auto' || provider === 'openai') && openai.apiKey) {
+  /* ---------------- Try OPENAI ---------------- */
+  if ((provider === 'openai' || provider === 'auto') && openai.apiKey) {
     try {
-      console.log('Attempting quiz generation with OpenAI...');
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: 'You are a quiz generator. Always respond with valid JSON only, no additional text or markdown.'
+            content: 'You generate only VALID JSON. Never add explanations or markdown.'
           },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'user', content: finalPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.6,
       });
 
       text = completion.choices[0]?.message?.content || '';
       usedProvider = 'OpenAI';
-      console.log('✅ OpenAI generation successful');
-    } catch (openaiError: any) {
-      console.error('OpenAI generation failed:', openaiError.message);
+    } catch (e) {
+      const error = e as Error;
+      console.error('OpenAI error:', error.message);
       if (provider === 'openai') {
-        throw new Error(`OpenAI generation failed: ${openaiError.message}`);
+        throw new Error(`OpenAI failed: ${error.message}`);
       }
-      // Continue to Gemini fallback if auto mode
     }
   }
 
-  // Try Gemini if OpenAI failed or if explicitly requested
+  /* ---------------- Try GEMINI ---------------- */
   if (!text && (provider === 'auto' || provider === 'gemini')) {
     try {
-      console.log('Attempting quiz generation with Gemini...');
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const result = await model.generateContent(finalPrompt);
+      const response = result.response;
       text = response.text();
       usedProvider = 'Gemini';
-      console.log('✅ Gemini generation successful');
-    } catch (geminiError: any) {
-      console.error('Gemini generation failed:', geminiError.message);
-      throw new Error(`AI generation failed: ${geminiError.message}`);
+    } catch (e) {
+      const error = e as Error;
+      console.error('Gemini error:', error.message);
+      throw new Error(`Gemini failed: ${error.message}`);
     }
   }
 
-  if (!text) {
-    throw new Error('No AI provider available or all providers failed');
-  }
+  if (!text) throw new Error('No AI provider returned output');
 
-  // Parse AI response
+  // Clean markdown noise
+  const cleanText = text.replace(/```json|```/g, '').trim();
+
   try {
-    // Remove markdown code blocks if present
-    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const quizData = JSON.parse(cleanText);
-    return { ...quizData, usedProvider };
-  } catch (parseError) {
-    console.error('Failed to parse AI response:', text);
-    throw new Error('Failed to parse AI response. The AI returned invalid JSON.');
+    return { ...JSON.parse(cleanText), usedProvider };
+  } catch (e) {
+    const error = e as Error;
+    console.error('Invalid JSON returned:', cleanText, error.message);
+    throw new Error('AI returned invalid JSON.');
   }
 }
 
+/* -------------------------------------------------------------------------
+    POST HANDLER
+------------------------------------------------------------------------- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { topic, numQuestions = 5, difficulty = 'medium', provider = 'auto' } = body;
 
-    if (!topic) {
-      return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
-    }
+    const {
+      topic = '',
+      numQuestions = 5,
+      difficulty = 'medium',
+      provider = 'auto',
+      companies = [],        // NEW
+      customPrompt = ''      // NEW
+    } = body;
 
-    // Generate quiz content using AI
-    const quizData = await generateQuizWithAI(topic, numQuestions, difficulty, provider);
+    // Build dynamic prompt
+    const finalPrompt = buildFinalPrompt(
+      topic,
+      companies,
+      customPrompt,
+      numQuestions,
+      difficulty
+    );
 
-    // Create quiz in database
+    // Generate content
+    const quizData = await generateQuizWithAI(finalPrompt, provider);
+
+    // Insert quiz into DB
     const { data: quiz, error: quizError } = await supabase
       .from('quizzes')
       .insert([
-        {
-          title: quizData.title,
-          description: quizData.description,
-        }
+        { title: quizData.title, description: quizData.description }
       ])
       .select()
       .single();
 
-    if (quizError || !quiz) {
-      throw new Error('Failed to create quiz: ' + quizError?.message);
-    }
+    if (quizError) throw new Error(quizError.message);
 
-    // Create questions and attach them to the quiz
-    const questionsToInsert = quizData.questions.map((q: any) => ({
+    // Insert questions
+    const formattedQuestions = quizData.questions.map((q: any) => ({
       question: q.question,
       choices: q.choices,
       correct_answer: q.correct_answer,
       difficulty: q.difficulty || difficulty,
     }));
 
-    const { data: questions, error: questionsError } = await supabase
+    const { data: insertedQ, error: questionsError } = await supabase
       .from('questions')
-      .insert(questionsToInsert)
+      .insert(formattedQuestions)
       .select();
 
-    if (questionsError || !questions) {
-      throw new Error('Failed to create questions: ' + questionsError?.message);
-    }
+    if (questionsError) throw new Error(questionsError.message);
 
-    // Attach questions to quiz
-    const mappings = questions.map((q: any) => ({
+    // Attach to quiz
+    const mappings = insertedQ.map((q: any) => ({
       quiz_id: quiz.quiz_id,
       question_id: q.question_id,
     }));
 
-    const { error: mappingError } = await supabase
-      .from('quiz_questions')
-      .insert(mappings);
-
-    if (mappingError) {
-      throw new Error('Failed to attach questions: ' + mappingError.message);
-    }
+    await supabase.from('quiz_questions').insert(mappings);
 
     return NextResponse.json({
       success: true,
-      message: `Quiz "${quiz.title}" created with ${questions.length} questions using ${quizData.usedProvider}`,
-      quiz: {
-        quiz_id: quiz.quiz_id,
-        title: quiz.title,
-        description: quiz.description,
-        questionsCount: questions.length,
-      },
+      message: `Quiz created with ${insertedQ.length} questions.`,
+      quiz: quiz,
       aiProvider: quizData.usedProvider,
     });
 
-  } catch (error: any) {
-    console.error('Quiz generation error:', error);
+  } catch (e: any) {
+    console.error(e);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate quiz' },
+      { error: e.message },
       { status: 500 }
     );
   }
