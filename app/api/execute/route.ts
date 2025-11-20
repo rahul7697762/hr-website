@@ -6,10 +6,41 @@ const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || ''; // Add your RapidAPI key in
 
 // Language ID mapping for Judge0
 const LANGUAGE_IDS: Record<string, number> = {
-  javascript: 63, // Node.js
-  python: 71,     // Python 3
-  c_cpp: 54,      // C++ (GCC 9.2.0)
-  java: 62,       // Java (OpenJDK 13.0.1)
+  javascript: 63,      // Node.js (12.14.0)
+  python: 71,          // Python (3.8.1)
+  java: 62,            // Java (OpenJDK 13.0.1)
+  c_cpp: 54,           // C++ (GCC 9.2.0)
+  c: 50,               // C (GCC 9.2.0)
+  csharp: 51,          // C# (Mono 6.6.0.161)
+  typescript: 74,      // TypeScript (3.7.4)
+  ruby: 72,            // Ruby (2.7.0)
+  golang: 60,          // Go (1.13.5)
+  php: 68,             // PHP (7.4.1)
+  swift: 83,           // Swift (5.2.3)
+  kotlin: 78,          // Kotlin (1.3.70)
+  rust: 73,            // Rust (1.40.0)
+  scala: 81,           // Scala (2.13.2)
+  perl: 85,            // Perl (5.28.1)
+  r: 80,               // R (4.0.0)
+  haskell: 61,         // Haskell (GHC 8.8.1)
+  lua: 64,             // Lua (5.3.5)
+  dart: 90,            // Dart (2.19.2)
+  elixir: 57,          // Elixir (1.9.4)
+  clojure: 86,         // Clojure (1.10.1)
+  fsharp: 87,          // F# (.NET Core SDK 3.1.202)
+  groovy: 88,          // Groovy (3.0.3)
+  objectivec: 79,      // Objective-C (Clang 7.0.1)
+  pascal: 67,          // Pascal (FPC 3.0.4)
+  fortran: 59,         // Fortran (GFortran 9.2.0)
+  assembly_x86: 45,    // Assembly (NASM 2.14.02)
+  cobol: 77,           // COBOL (GnuCOBOL 2.2)
+  lisp: 55,            // Common Lisp (SBCL 2.0.0)
+  d: 56,               // D (DMD 2.089.1)
+  erlang: 58,          // Erlang (OTP 22.2)
+  ocaml: 65,           // OCaml (4.09.0)
+  prolog: 69,          // Prolog (GNU Prolog 1.4.5)
+  sql: 82,             // SQL (SQLite 3.27.2)
+  vbscript: 84,        // Visual Basic.Net (vbnc 0.0.0.5943)
 };
 
 export async function POST(request: NextRequest) {

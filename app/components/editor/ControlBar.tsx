@@ -6,9 +6,13 @@ interface ControlBarProps {
   activeTab: 'program' | 'debug';
   language: string;
   theme: string;
+  isRunning?: boolean;
   onTabChange: (tab: 'program' | 'debug') => void;
   onLanguageChange: (language: string) => void;
   onThemeToggle: () => void;
+  onRun?: () => void;
+  onIncreaseEditor?: () => void;
+  onDecreaseEditor?: () => void;
 }
 
 const LANGUAGES = [
@@ -17,18 +21,49 @@ const LANGUAGES = [
   { value: 'java', label: 'Java' },
   { value: 'c_cpp', label: 'C++' },
   { value: 'c', label: 'C' },
+  { value: 'csharp', label: 'C#' },
   { value: 'typescript', label: 'TypeScript' },
   { value: 'ruby', label: 'Ruby' },
   { value: 'golang', label: 'Go' },
+  { value: 'php', label: 'PHP' },
+  { value: 'swift', label: 'Swift' },
+  { value: 'kotlin', label: 'Kotlin' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'scala', label: 'Scala' },
+  { value: 'perl', label: 'Perl' },
+  { value: 'r', label: 'R' },
+  { value: 'haskell', label: 'Haskell' },
+  { value: 'lua', label: 'Lua' },
+  { value: 'dart', label: 'Dart' },
+  { value: 'elixir', label: 'Elixir' },
+  { value: 'clojure', label: 'Clojure' },
+  { value: 'fsharp', label: 'F#' },
+  { value: 'groovy', label: 'Groovy' },
+  { value: 'objectivec', label: 'Objective-C' },
+  { value: 'pascal', label: 'Pascal' },
+  { value: 'fortran', label: 'Fortran' },
+  { value: 'assembly_x86', label: 'Assembly (x86)' },
+  { value: 'cobol', label: 'COBOL' },
+  { value: 'lisp', label: 'Common Lisp' },
+  { value: 'd', label: 'D' },
+  { value: 'erlang', label: 'Erlang' },
+  { value: 'ocaml', label: 'OCaml' },
+  { value: 'prolog', label: 'Prolog' },
+  { value: 'sql', label: 'SQL' },
+  { value: 'vbscript', label: 'VB.NET' },
 ];
 
 const ControlBar: React.FC<ControlBarProps> = ({
   activeTab,
   language,
   theme,
+  isRunning = false,
   onTabChange,
   onLanguageChange,
   onThemeToggle,
+  onRun,
+  onIncreaseEditor,
+  onDecreaseEditor,
 }) => {
   const isDark = theme === 'dark';
 
@@ -40,8 +75,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           : 'bg-gray-100 border-gray-300'
       }`}
     >
-      {/* Left: Tab Navigation */}
-      <div className="flex gap-1" role="tablist" aria-label="Code editor modes">
+      {/* Left: Program Tab + Language Selector */}
+      <div className="flex gap-2 items-center" role="tablist" aria-label="Code editor modes">
         <button
           onClick={() => onTabChange('program')}
           role="tab"
@@ -61,49 +96,101 @@ const ControlBar: React.FC<ControlBarProps> = ({
         >
           Program
         </button>
-        <button
-          onClick={() => onTabChange('debug')}
-          role="tab"
-          aria-selected={activeTab === 'debug'}
-          aria-controls="editor-panel"
-          aria-label="Debug tab"
-          tabIndex={activeTab === 'debug' ? 0 : -1}
-          className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-colors touch-manipulation ${
-            activeTab === 'debug'
-              ? isDark
-                ? 'bg-gray-900 text-white border-b-2 border-blue-500'
-                : 'bg-white text-gray-900 border-b-2 border-blue-500'
-              : isDark
-              ? 'bg-transparent text-gray-400 hover:bg-gray-700 active:bg-gray-600 hover:text-gray-200'
-              : 'bg-transparent text-gray-600 hover:bg-gray-200 active:bg-gray-300 hover:text-gray-900'
-          }`}
-        >
-          Debug
-        </button>
+        
+        {/* Language Selector in place of Debug tab */}
+        <div className="flex items-center">
+          <label htmlFor="language-selector" className="sr-only">
+            Select programming language
+          </label>
+          <select
+            id="language-selector"
+            value={language}
+            onChange={(e) => onLanguageChange(e.target.value)}
+            aria-label="Select programming language"
+            className={`px-2 py-1.5 md:px-3 md:py-1.5 text-xs md:text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation ${
+              isDark
+                ? 'bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600'
+                : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.value + lang.label} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Center: Language Selector */}
-      <div className="flex items-center gap-2 flex-1 md:flex-initial justify-center">
-        <label htmlFor="language-selector" className="sr-only">
-          Select programming language
-        </label>
-        <select
-          id="language-selector"
-          value={language}
-          onChange={(e) => onLanguageChange(e.target.value)}
-          aria-label="Select programming language"
-          className={`px-2 py-1.5 md:px-3 md:py-1.5 text-xs md:text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation ${
-            isDark
-              ? 'bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600'
-              : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          {LANGUAGES.map((lang) => (
-            <option key={lang.value + lang.label} value={lang.value}>
-              {lang.label}
-            </option>
-          ))}
-        </select>
+      {/* Center: Run Button + Resize Controls */}
+      <div className="flex items-center gap-2">
+        {/* Run Button */}
+        {onRun && (
+          <button
+            onClick={onRun}
+            disabled={isRunning}
+            aria-label="Run code"
+            title="Run (Ctrl+Enter)"
+            className={`px-3 py-1.5 rounded text-xs md:text-sm font-medium transition-colors touch-manipulation flex items-center gap-1 ${
+              isRunning
+                ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                : isDark
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {isRunning ? (
+              <>
+                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Running
+              </>
+            ) : (
+              <>
+                <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+                Run
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Resize Controls */}
+        {onIncreaseEditor && onDecreaseEditor && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onDecreaseEditor}
+              aria-label="Decrease editor size"
+              title="Decrease editor size"
+              className={`p-1.5 rounded transition-colors touch-manipulation ${
+                isDark
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 active:bg-gray-500'
+                  : 'bg-white text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-300'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button
+              onClick={onIncreaseEditor}
+              aria-label="Increase editor size"
+              title="Increase editor size"
+              className={`p-1.5 rounded transition-colors touch-manipulation ${
+                isDark
+                  ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 active:bg-gray-500'
+                  : 'bg-white text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-300'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right: Theme Toggle */}

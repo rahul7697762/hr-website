@@ -22,6 +22,9 @@ export default function CodePlayground() {
   const [showLanguageChangeDialog, setShowLanguageChangeDialog] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
 
+  // Editor size state (percentage of width for editor)
+  const [editorWidth, setEditorWidth] = useState(60); // 60% for editor, 40% for side panel
+
   const handleThemeToggle = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -166,6 +169,15 @@ export default function CodePlayground() {
     setPendingLanguage(null);
   }, []);
 
+  // Resize handlers
+  const handleIncreaseEditor = useCallback(() => {
+    setEditorWidth(prev => Math.min(prev + 5, 80)); // Max 80%
+  }, []);
+
+  const handleDecreaseEditor = useCallback(() => {
+    setEditorWidth(prev => Math.max(prev - 5, 40)); // Min 40%
+  }, []);
+
   return (
     <div className={`h-screen w-full flex flex-col ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-white text-gray-900'}`}>
       {/* Language Change Confirmation Dialog */}
@@ -183,13 +195,22 @@ export default function CodePlayground() {
         activeTab={activeTab}
         language={language}
         theme={theme}
+        isRunning={isRunning}
         onTabChange={setActiveTab}
         onLanguageChange={handleLanguageChange}
         onThemeToggle={handleThemeToggle}
+        onRun={handleRun}
+        onIncreaseEditor={handleIncreaseEditor}
+        onDecreaseEditor={handleDecreaseEditor}
       />
 
       {/* Main Content Area - Grid Layout */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_400px] lg:grid-cols-[1fr_450px] overflow-hidden transition-all duration-300">
+      <div 
+        className="flex-1 grid grid-cols-1 overflow-hidden transition-all duration-300"
+        style={{
+          gridTemplateColumns: window.innerWidth >= 768 ? `${editorWidth}% ${100 - editorWidth}%` : '1fr'
+        }}
+      >
         {/* Editor Panel */}
         <div 
           id="editor-panel"
@@ -224,50 +245,6 @@ export default function CodePlayground() {
               output={output}
               theme={theme}
             />
-          </div>
-
-          {/* Compile & Run Button */}
-          <div className={`p-3 md:p-4 border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-100'}`}>
-            <button
-              onClick={handleRun}
-              disabled={isRunning}
-              aria-label="Compile and run code (Ctrl+Enter or Cmd+Enter)"
-              title="Compile & Run (Ctrl+Enter or Cmd+Enter)"
-              className={`w-full px-3 py-2 md:px-4 md:py-2 rounded-md text-sm md:text-base font-medium transition-colors touch-manipulation ${
-                isRunning
-                  ? 'bg-gray-400 cursor-not-allowed text-gray-700'
-                  : 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white'
-              }`}
-            >
-              {isRunning ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4 md:h-5 md:w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Running...
-                </span>
-              ) : (
-                'Compile & Run'
-              )}
-            </button>
           </div>
         </div>
       </div>
