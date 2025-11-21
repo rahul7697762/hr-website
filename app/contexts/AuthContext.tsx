@@ -79,10 +79,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkSession = async () => {
       try {
         console.log('Checking for existing session...');
+        
+        // First check localStorage for instant load
+        const storedUser = loadUserFromStorage();
+        if (storedUser) {
+          console.log('Found user in localStorage, loading immediately:', storedUser.name);
+          setUser(storedUser);
+          setLoading(false); // Set loading to false immediately
+        }
+        
+        // Then verify with Supabase in background
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session error:', sessionError);
+          if (storedUser) {
+            clearUserFromStorage();
+            setUser(null);
+          }
+          setLoading(false);
           return;
         }
         
@@ -90,61 +105,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           console.log('Found existing session for user:', session.user.email);
           setToken(session.access_token);
           
-          // Fetch user profile from users table with retry logic
-          let userData = null;
-          let error = null;
-          let attempts = 0;
-          const maxAttempts = 3;
-          
-          while (attempts < maxAttempts && !userData) {
-            attempts++;
-            const result = await supabase
+          // Fetch user profile with timeout
+          const fetchProfile = async () => {
+            const { data: userData, error } = await supabase
               .from('users')
               .select('*')
               .eq('email', session.user.email)
               .single();
             
-            userData = result.data;
-            error = result.error;
-            
-            if (!userData && attempts < maxAttempts) {
-              console.log(`User profile fetch attempt ${attempts} failed, retrying...`);
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
-            }
-          }
-          
-          if (userData && !error) {
-            console.log('User profile loaded:', userData.name);
-            setUser(userData);
-            saveUserToStorage(userData);
-          } else {
-            console.warn('Failed to load user profile after', attempts, 'attempts. Error:', error?.message || 'No error details');
-            console.log('Creating fallback user from session data for:', session.user.email);
-            // Create a fallback user object from session data
-            const fallbackUser: User = {
-              user_id: (session.user.id && parseInt(session.user.id)) || Math.floor(Math.random() * 1000000),
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-              email: session.user.email || '',
-              role: session.user.user_metadata?.role || 'student',
-              created_at: session.user.created_at || new Date().toISOString(),
-            };
-            setUser(fallbackUser);
-            saveUserToStorage(fallbackUser);
-          }
-        } else {
-          console.log('No existing session found, checking localStorage...');
-          // Try to load from localStorage as fallback
-          const storedUser = loadUserFromStorage();
-          if (storedUser) {
-            console.log('Found user in localStorage:', storedUser.name);
-            // Validate if the session is still valid
-            const isValidSession = await validateSession();
-            if (isValidSession) {
-              setUser(storedUser);
+            if (userData && !error) {
+              console.log('User profile loaded:', userData.name);
+              setUser(userData);
+              saveUserToStorage(userData);
             } else {
-              console.log('Stored session is invalid, clearing localStorage');
-              clearUserFromStorage();
+              console.log('Creating fallback user from session data');
+              const fallbackUser: User = {
+                user_id: (session.user.id && parseInt(session.user.id)) || Math.floor(Math.random() * 1000000),
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                role: session.user.user_metadata?.role || 'student',
+                created_at: session.user.created_at || new Date().toISOString(),
+              };
+              setUser(fallbackUser);
+              saveUserToStorage(fallbackUser);
             }
+          };
+
+          // Fetch with 2 second timeout
+          await Promise.race([
+            fetchProfile(),
+            new Promise((resolve) => setTimeout(resolve, 2000))
+          ]);
+        } else {
+          console.log('No existing session found');
+          if (storedUser) {
+            console.log('Clearing invalid stored user');
+            clearUserFromStorage();
+            setUser(null);
           }
         }
       } catch (error) {
@@ -231,71 +228,77 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Provide helpful error messages
         if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please check your email and click the confirmation link. Or disable email confirmation in Supabase Dashboard → Authentication → Providers → Email');
+          throw new Error('Please verify your email or disable email confirmation in Supabase settings');
         }
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please check:\n1. Email is correct\n2. Password is correct\n3. User exists in Supabase Dashboard → Authentication → Users\n4. Email confirmation is disabled for development');
+          throw new Error('Invalid email or password');
         }
         if (error.message.includes('Email link is invalid or has expired')) {
-          throw new Error('Email confirmation link expired. Please request a new one.');
+          throw new Error('Email confirmation link expired');
         }
         throw new Error(error.message);
       }
       
       console.log('Login successful for:', email);
 
-      if (data.session) {
+      if (data.session && data.user) {
         setToken(data.session.access_token);
         
-        // Fetch user profile from users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', email)
-          .single();
-        
-        if (userError) {
-          console.warn('User profile not found in database during login, creating basic user. Error:', userError?.message || 'No error details');
-          // Create a basic user object if profile doesn't exist
+        // Fetch user profile from users table with timeout
+        const fetchUserProfile = async () => {
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', email)
+              .single();
+            
+            if (userData && !userError) {
+              console.log('User profile loaded:', userData.name);
+              setUser(userData);
+              saveUserToStorage(userData);
+              return userData;
+            }
+          } catch (err) {
+            console.warn('Error fetching user profile:', err);
+          }
+          
+          // Fallback: create basic user from auth data
+          console.log('Using fallback user profile');
           const basicUser: User = {
-            user_id: 0,
-            name: data.user?.user_metadata?.name || email.split('@')[0],
+            user_id: parseInt(data.user.id) || Math.floor(Math.random() * 1000000),
+            name: data.user.user_metadata?.name || email.split('@')[0] || 'User',
             email: email,
-            role: role || data.user?.user_metadata?.role || 'student',
-            created_at: new Date().toISOString(),
+            role: role || data.user.user_metadata?.role || 'student',
+            created_at: data.user.created_at || new Date().toISOString(),
           };
           setUser(basicUser);
           saveUserToStorage(basicUser);
-          return;
-        }
-        
-        if (userData) {
-          // If role is provided and different from stored role, update it
-          if (role && role !== userData.role) {
-            const { data: updatedUser, error: updateError } = await supabase
-              .from('users')
-              .update({ role })
-              .eq('email', email)
-              .select()
-              .single();
-            
-            if (!updateError && updatedUser) {
-              setUser(updatedUser);
-              saveUserToStorage(updatedUser);
-            } else {
-              // If update fails, use the role from database
-              setUser(userData);
-              saveUserToStorage(userData);
-            }
-          } else {
-            setUser(userData);
-            saveUserToStorage(userData);
-          }
-        }
+          return basicUser;
+        };
+
+        // Fetch user profile with 3 second timeout
+        await Promise.race([
+          fetchUserProfile(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+          )
+        ]).catch((err) => {
+          console.warn('Profile fetch timed out, using fallback');
+          const basicUser: User = {
+            user_id: parseInt(data.user.id) || Math.floor(Math.random() * 1000000),
+            name: data.user.user_metadata?.name || email.split('@')[0] || 'User',
+            email: email,
+            role: role || data.user.user_metadata?.role || 'student',
+            created_at: data.user.created_at || new Date().toISOString(),
+          };
+          setUser(basicUser);
+          saveUserToStorage(basicUser);
+        });
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'Login failed';
-      throw new Error(errorMessage);
+      console.error('Login failed:', error);
+      throw new Error(error.message || 'Login failed');
     }
   };
 

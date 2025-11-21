@@ -52,7 +52,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value as UserRole)}
         disabled={disabled}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
       >
         {roleOptions.map((option) => (
           <option key={option.value} value={option.value}>

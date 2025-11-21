@@ -12,14 +12,14 @@ const NavLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, 
 );
 
 const MobileNavLink: React.FC<{ href: string; onClick?: () => void; children: React.ReactNode }> = ({ href, onClick, children }) => (
-    <Link href={href} onClick={onClick} className="text-left w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-      {children}
-    </Link>
-  );
+  <Link href={href} onClick={onClick} className="text-left w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+    {children}
+  </Link>
+);
 
 const DropdownNavLink: React.FC<{ children: React.ReactNode; isOpen: boolean; onToggle: () => void }> = ({ children, isOpen, onToggle }) => (
   <div className="relative">
-    <button 
+    <button
       onClick={onToggle}
       className="flex items-center text-gray-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors duration-200 px-3 py-2 rounded-md text-sm font-medium"
     >
@@ -43,51 +43,51 @@ const DropdownItem: React.FC<{ href: string; onClick?: () => void; children: Rea
 );
 
 const Header: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [resumeDropdownOpen, setResumeDropdownOpen] = useState(false);
-    const [placementDropdownOpen, setPlacementDropdownOpen] = useState(false);
-    const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
-    const { isAuthenticated, user } = useAuth();
-    const { canAccessAdmin, canPostJobs, canMentorStudents } = useRoleAccess();
-    const resumeDropdownRef = useRef<HTMLDivElement>(null);
-    const placementDropdownRef = useRef<HTMLDivElement>(null);
-    const adminDropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [resumeDropdownOpen, setResumeDropdownOpen] = useState(false);
+  const [placementDropdownOpen, setPlacementDropdownOpen] = useState(false);
+  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+  const { canAccessAdmin, canPostJobs, canMentorStudents } = useRoleAccess();
+  const resumeDropdownRef = useRef<HTMLDivElement>(null);
+  const placementDropdownRef = useRef<HTMLDivElement>(null);
+  const adminDropdownRef = useRef<HTMLDivElement>(null);
 
-    const handleMobileNavClick = () => {
-        setIsOpen(false);
-    }
+  const handleMobileNavClick = () => {
+    setIsOpen(false);
+  }
 
-    const handleResumeBuilderClick = () => {
+  const handleResumeBuilderClick = () => {
+    setResumeDropdownOpen(false);
+  }
+
+  const handlePlacementPrepClick = () => {
+    setPlacementDropdownOpen(false);
+  }
+
+  const handleAdminClick = () => {
+    setAdminDropdownOpen(false);
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (resumeDropdownRef.current && !resumeDropdownRef.current.contains(event.target as Node)) {
         setResumeDropdownOpen(false);
-    }
-
-    const handlePlacementPrepClick = () => {
+      }
+      if (placementDropdownRef.current && !placementDropdownRef.current.contains(event.target as Node)) {
         setPlacementDropdownOpen(false);
-    }
-
-    const handleAdminClick = () => {
+      }
+      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
         setAdminDropdownOpen(false);
-    }
+      }
+    };
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (resumeDropdownRef.current && !resumeDropdownRef.current.contains(event.target as Node)) {
-                setResumeDropdownOpen(false);
-            }
-            if (placementDropdownRef.current && !placementDropdownRef.current.contains(event.target as Node)) {
-                setPlacementDropdownOpen(false);
-            }
-            if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
-                setAdminDropdownOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800">
@@ -100,20 +100,20 @@ const Header: React.FC = () => {
             <div className="ml-10 flex items-center space-x-1">
               <NavLink href="/">Home</NavLink>
               {isAuthenticated && <NavLink href="/dashboard">Dashboard</NavLink>}
-              
+
               {/* Resume Builder Dropdown */}
               <div className="relative" ref={resumeDropdownRef}>
-                <DropdownNavLink 
-                  isOpen={resumeDropdownOpen} 
+                <DropdownNavLink
+                  isOpen={resumeDropdownOpen}
                   onToggle={() => setResumeDropdownOpen(!resumeDropdownOpen)}
                 >
                   Resume Builder
                 </DropdownNavLink>
-                
+
                 {resumeDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="py-1">
-                      <DropdownItem 
+                      <DropdownItem
                         href="/resume-builder"
                         onClick={handleResumeBuilderClick}
                         description="Create professional resumes with multiple templates"
@@ -121,7 +121,7 @@ const Header: React.FC = () => {
                         Resume Builder
                       </DropdownItem>
                       {isAuthenticated && (
-                        <DropdownItem 
+                        <DropdownItem
                           href="/my-resumes"
                           onClick={handleResumeBuilderClick}
                           description="View and manage your saved resumes"
@@ -133,49 +133,49 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <NavLink href="/ats-tools">ATS Tools</NavLink>
-              
+
               {/* Placement Prep Dropdown */}
               <div className="relative" ref={placementDropdownRef}>
-                <DropdownNavLink 
-                  isOpen={placementDropdownOpen} 
+                <DropdownNavLink
+                  isOpen={placementDropdownOpen}
                   onToggle={() => setPlacementDropdownOpen(!placementDropdownOpen)}
                 >
                   Placement Prep
                 </DropdownNavLink>
-                
+
                 {placementDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="py-1">
-                      <DropdownItem 
+                      <DropdownItem
                         href="/interview-prep"
                         onClick={handlePlacementPrepClick}
                         description="Prepare for interviews with AI-powered tools"
                       >
                         🎯 Interview Prep
                       </DropdownItem>
-                      <DropdownItem 
+                      <DropdownItem
                         href="#"
                         description="Practice coding problems and algorithms"
                       >
                         💻 Coding Practice
                       </DropdownItem>
-                      <DropdownItem 
+                      <DropdownItem
                         href="/interview-prep/mock"
                         onClick={handlePlacementPrepClick}
                         description="AI-powered mock interviews with real-time feedback"
                       >
                         🎯 Mock Interview
                       </DropdownItem>
-                      <DropdownItem 
+                      <DropdownItem
                         href="/interview-demo"
                         onClick={handlePlacementPrepClick}
                         description="Test the interview system with voice AI"
                       >
                         🎤 Interview Demo
                       </DropdownItem>
-                      <DropdownItem 
+                      <DropdownItem
                         href="#"
                         description="Aptitude and reasoning questions"
                       >
@@ -185,76 +185,21 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               <NavLink href="/code-playground">Code Playground</NavLink>
-              
-              {/* Quiz Link - For students */}
-              {isAuthenticated && user?.role === 'student' && (
-                <NavLink href="/quiz">📚 My Quizzes</NavLink>
-              )}
-              
-              {/* Quiz Admin - For admins */}
-              {canAccessAdmin && (
-                <NavLink href="/quiz/admin">🎯 Quiz Admin</NavLink>
-              )}
-              
-              {/* Admin Dropdown - Only for admins */}
-              {canAccessAdmin && (
-                <div className="relative" ref={adminDropdownRef}>
-                  <DropdownNavLink 
-                    isOpen={adminDropdownOpen} 
-                    onToggle={() => setAdminDropdownOpen(!adminDropdownOpen)}
-                  >
-                    Admin
-                  </DropdownNavLink>
-                  
-                  {adminDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                      <div className="py-1">
-                        <DropdownItem 
-                          href="/admin/users"
-                          onClick={handleAdminClick}
-                          description="Manage platform users and permissions"
-                        >
-                          👥 User Management
-                        </DropdownItem>
-                        <DropdownItem 
-                          href="/admin/analytics"
-                          onClick={handleAdminClick}
-                          description="View platform analytics and reports"
-                        >
-                          📊 Analytics
-                        </DropdownItem>
-                        <DropdownItem 
-                          href="/admin/content"
-                          onClick={handleAdminClick}
-                          description="Moderate content and manage platform data"
-                        >
-                          🛡️ Content Moderation
-                        </DropdownItem>
-                        <DropdownItem 
-                          href="/admin/settings"
-                          onClick={handleAdminClick}
-                          description="Configure platform settings"
-                        >
-                          ⚙️ Settings
-                        </DropdownItem>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
+
+
+
               {/* Recruiter-specific links */}
               {canPostJobs && user?.role === 'recruiter' && (
                 <NavLink href="/jobs">Jobs</NavLink>
               )}
-              
+
               {/* Mentor-specific links */}
               {canMentorStudents && user?.role === 'mentor' && (
                 <NavLink href="/mentor">Mentoring</NavLink>
               )}
-              
+
               <NavLink href="#">Games</NavLink>
               <div className="ml-4 flex items-center space-x-3">
                 <ThemeToggleButton />
@@ -300,7 +245,7 @@ const Header: React.FC = () => {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <MobileNavLink href="/" onClick={handleMobileNavClick}>Home</MobileNavLink>
             {isAuthenticated && <MobileNavLink href="/dashboard" onClick={handleMobileNavClick}>Dashboard</MobileNavLink>}
-            
+
             {/* Resume Builder Section */}
             <div className="px-3 py-2">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resume Builder</div>
@@ -311,9 +256,9 @@ const Header: React.FC = () => {
                 <MobileNavLink href="/my-resumes" onClick={handleMobileNavClick}>My Resumes</MobileNavLink>
               )}
             </div>
-            
+
             <MobileNavLink href="/ats-tools" onClick={handleMobileNavClick}>ATS Tools</MobileNavLink>
-            
+
             {/* Placement Prep Section */}
             <div className="px-3 py-2">
               <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Placement Prep</div>
@@ -323,19 +268,19 @@ const Header: React.FC = () => {
               <MobileNavLink href="#" onClick={handleMobileNavClick}>🎯 Mock Interview</MobileNavLink>
               <MobileNavLink href="#" onClick={handleMobileNavClick}>🧮 Aptitude Tests</MobileNavLink>
             </div>
-            
+
             <MobileNavLink href="/code-playground" onClick={handleMobileNavClick}>Code Playground</MobileNavLink>
-            
+
             {/* Quiz Link - For students */}
             {isAuthenticated && user?.role === 'student' && (
               <MobileNavLink href="/quiz" onClick={handleMobileNavClick}>📚 My Quizzes</MobileNavLink>
             )}
-            
+
             {/* Quiz Admin - For admins */}
             {canAccessAdmin && (
               <MobileNavLink href="/quiz/admin" onClick={handleMobileNavClick}>🎯 Quiz Admin</MobileNavLink>
             )}
-            
+
             {/* Admin Section - Only for admins */}
             {canAccessAdmin && (
               <>
@@ -350,16 +295,16 @@ const Header: React.FC = () => {
                 </div>
               </>
             )}
-            
+
             {/* Role-specific links */}
             {canPostJobs && user?.role === 'recruiter' && (
               <MobileNavLink href="/jobs" onClick={handleMobileNavClick}>Jobs</MobileNavLink>
             )}
-            
+
             {canMentorStudents && user?.role === 'mentor' && (
               <MobileNavLink href="/mentor" onClick={handleMobileNavClick}>Mentoring</MobileNavLink>
             )}
-            
+
             <MobileNavLink href="#" onClick={handleMobileNavClick}>Games</MobileNavLink>
           </div>
         </div>
